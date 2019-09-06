@@ -18,6 +18,7 @@
 
 #include <linux/hashtable.h>
 #include <linux/types.h>
+#include <linux/list.h>
 
 #define unsigned int uint;
 
@@ -37,24 +38,29 @@ struct rule {
 	uint src_port; 
 	uint dest_port;
 	uint protocol; 
+    int action;
 	int log; 
 };
 
-struct hash_node {
+struct state_node {
     struct keyword kw;
     unsigned long int key;
     int action; // 0 = not find, 1 = allow, 2 = deny
     struct hlist_node next;
 };
 
-#define MAX_SIZE 1024
+struct rule_node {
+  struct rule;
+  struct list_node next;  
+};
 
 MODULE_LICENSE("GPL");
-MODULE_AUTHOR("u201614817");
-
+MODULE_AUTHOR("U201614817");
 
 static struct nf_hook_ops nfho;
-DEFINE_HASHTABLE(htable, 10);
+DEFINE_HASHTABLE(state_table, 10); //状态哈希表
+LIST_HEAD(rule_table) // 规则链表
+
 int add_hashtable(){
 
 }
@@ -65,11 +71,13 @@ unsigned int hook_input_func(void *priv,
 					   struct sk_buff *skb,
 					   const struct nf_hook_state *state)
 {
-    struct keyword kw;
     // 先提取keywords
+    struct keyword kw; = extract_keyword(kw, skb);
+    int state_action, rule_action;
     
     kw = extract_keyword(kw, skb);
-    int state_action = check_state_table(kw);
+    state_action = check_state_table(kw);
+    rule_action = cheack_rule_table(kw);
     if(state_action == 1){
         return NF_ACCEPT;
     }else if(state_action == 2){
@@ -133,8 +141,8 @@ unsigned long int hash_function(const struct keyword kw){
 
 int check_state_table(struct keyword kw){
     unsigned long int hash = hash_function(kw);
-    struct hash_node* current;
-    hash_for_each_possible(htable, current, hash, next) {
+    struct state_node* current;
+    hash_for_each_possible(state_table, current, hash, next) {
         if(current->hash == hash) {
             if(compare_keywords(current->kw, kw)){
                 return current->action;
@@ -145,7 +153,8 @@ int check_state_table(struct keyword kw){
 }
 
 int check_rule_table(const struct keyword kw){
-    
+    struct list_node cur;
+    for
 }
 
 static int init_driver(void)
