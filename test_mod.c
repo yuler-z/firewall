@@ -21,15 +21,15 @@
 
 #define unsigned int uint;
 
-typedef struct{
+struct keyword {
 	unsigned long int src_ip;
 	unsigned long int dst_ip;
 	uint protocol;
     uint src_port;
 	uint dst_port;
-}Keywords;
+};
 
-typedef struct {
+struct rule {
 	unsigned long int src_ip;  
     unsigned long int src_mask;
 	unsigned long int dest_ip; 
@@ -38,13 +38,14 @@ typedef struct {
 	uint dest_port;
 	uint protocol; 
 	int log; 
-}Rule;
+};
 
-typedef struct{
+struct hash_node {
+    struct keyword kw;
     unsigned long int key;
-    int action;
-    struct hlist_node node;
-}Hash_Node;
+    int action; // 0 = not find, 1 = allow, 2 = deny
+    struct hlist_node next;
+};
 
 #define MAX_SIZE 1024
 
@@ -64,17 +65,23 @@ unsigned int hook_input_func(void *priv,
 					   struct sk_buff *skb,
 					   const struct nf_hook_state *state)
 {
-    Keywords kw;
+    struct keyword kw;
     // 先提取keywords
     
     kw = extract_keyword(kw, skb);
-    check_state_table(kw);
+    int state_action = check_state_table(kw);
+    if(state_action == 1){
+        return NF_ACCEPT;
+    }else if(state_action == 2){
+        return NF_DROP;
+    }
+    
     check_rule_table(kw);
 	return NF_DROP;
 }
 
 
-int extract_keyword(Keywords &kw, const struct sk_buff *skb){
+int extract_keyword(struct keyword &kw, const struct sk_buff *skb){
     /**
      * 0 extract error
      * 1 ok 
@@ -119,25 +126,26 @@ int extract_keyword(Keywords &kw, const struct sk_buff *skb){
     return 1;
 }
 
-unsigned long int hash_function(const Keywords kw){
+unsigned long int hash_function(const struct keyword kw){
     unsigned long int hash = 0;
     return hash;
 }
 
-int check_state_table(Keywords kw){
-    unsigned long int key = hash_function(kw);
-    int bucket = 0;
-    struct Hash_Node* current;
-    hash_for_each(htable, bucket, current, next) {
-        if(current->hash == key) {
-            return current->action;
+int check_state_table(struct keyword kw){
+    unsigned long int hash = hash_function(kw);
+    struct hash_node* current;
+    hash_for_each_possible(htable, current, hash, next) {
+        if(current->hash == hash) {
+            if(compare_keywords(current->kw, kw)){
+                return current->action;
+            }
         }
     }
-    return 0;
+    return 0; //not find in state table
 }
 
-int check_rule_table(){
-
+int check_rule_table(const struct keyword kw){
+    
 }
 
 static int init_driver(void)
