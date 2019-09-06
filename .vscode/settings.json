@@ -1,0 +1,21 @@
+{
+    "files.associations": {
+        "module.h": "c",
+        "fs.h": "c",
+        "kernel.h": "c",
+        "skbuff.h": "c",
+        "netfilter_ipv4.h": "c",
+        "linux/kernel.h": "c",
+        "sysinfo.h": "c",
+        "netfilter.h": "c",
+        "stdlib.h": "c",
+        "unistd.h": "c",
+        "if_arp.h": "c",
+        "if_ether.h": "c",
+        "socket.h": "c",
+        "version.h": "c",
+        "ip.h": "c",
+        "tcp.h": "c",
+        "inet.h": "c"
+    }
+}
