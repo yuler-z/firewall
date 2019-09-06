@@ -17,6 +17,7 @@
 #include <net/net_namespace.h>
 
 #include <linux/hashtable.h>
+#include <linux/types.h>
 
 #define unsigned int uint;
 
@@ -39,6 +40,12 @@ typedef struct {
 	int log; 
 }Rule;
 
+typedef struct{
+    unsigned long int key;
+    int action;
+    struct hlist_node node;
+}Hash_Node;
+
 #define MAX_SIZE 1024
 
 MODULE_LICENSE("GPL");
@@ -46,8 +53,12 @@ MODULE_AUTHOR("u201614817");
 
 
 static struct nf_hook_ops nfho;
+DEFINE_HASHTABLE(htable, 10);
+int add_hashtable(){
 
-static 
+}
+
+
 
 unsigned int hook_input_func(void *priv,
 					   struct sk_buff *skb,
@@ -108,9 +119,21 @@ int extract_keyword(Keywords &kw, const struct sk_buff *skb){
     return 1;
 }
 
+unsigned long int hash_function(const Keywords kw){
+    unsigned long int hash = 0;
+    return hash;
+}
 
-int check_state_table(){
-
+int check_state_table(Keywords kw){
+    unsigned long int key = hash_function(kw);
+    int bucket = 0;
+    struct Hash_Node* current;
+    hash_for_each(htable, bucket, current, next) {
+        if(current->hash == key) {
+            return current->action;
+        }
+    }
+    return 0;
 }
 
 int check_rule_table(){
