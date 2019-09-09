@@ -38,7 +38,7 @@ struct rule {
 	uint src_port; 
 	uint dest_port;
 	uint protocol; 
-    int action;
+    int action; // deny or allow
 	int log; 
 };
 
