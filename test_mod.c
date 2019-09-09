@@ -89,6 +89,8 @@ uint hook_input_func(void *priv,
 					   struct sk_buff *skb,
 					   const struct nf_hook_state *state)
 {
+    return NF_ACCEPT;
+    /*
     // 先提取keywords
     struct keyword kw;
     int state_action, rule_action;
@@ -104,6 +106,7 @@ uint hook_input_func(void *priv,
     
     check_rule_table(kw);
 	return NF_DROP;
+    */
 }
 
 uint hook_output_func(void *priv,
@@ -186,7 +189,8 @@ int check_rule_table(const struct keyword kw){
 
 int handle_rule_config(char* input){
     //int size = strlen(input);
-    printk("[]");
+    printk("[handle_rule_config]:%s\n", input);
+    send_to_user("hello, i received your msg.\n")
     return 0;
 }
 
