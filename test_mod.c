@@ -12,7 +12,6 @@
 #include <linux/tcp.h>
 #include <linux/udp.h>
 #include <linux/icmp.h>
-#include <arpa/inet.h>
 
 #include <net/net_namespace.h>
 
@@ -20,21 +19,24 @@
 #include <linux/types.h>
 #include <linux/list.h>
 
-#define unsigned int uint;
+#define NETLINK_TEST 25 // value > 16
+
+#define uint uint
+#define ulong ulong
 
 struct keyword {
-	unsigned long int src_ip;
-	unsigned long int dst_ip;
+	ulong src_ip;
+	ulong dst_ip;
 	uint protocol;
     uint src_port;
 	uint dst_port;
 };
 
 struct rule {
-	unsigned long int src_ip;  
-    unsigned long int src_mask;
-	unsigned long int dest_ip; 
-	unsigned long int maskoff;
+	ulong src_ip;  
+    ulong src_mask;
+	ulong dest_ip; 
+	ulong maskoff;
 	uint src_port; 
 	uint dest_port;
 	uint protocol; 
@@ -44,14 +46,14 @@ struct rule {
 
 struct state_node {
     struct keyword kw;
-    unsigned long int key;
+    ulong hash;
     int action; // 0 = not find, 1 = allow, 2 = deny
     struct hlist_node next;
 };
 
 struct rule_node {
-  struct rule;
-  struct list_node next;  
+  struct rule rule;
+  struct list_head list;  
 };
 
 MODULE_LICENSE("GPL");
@@ -61,25 +63,36 @@ static struct nf_hook_ops input_hook;
 static struct nf_hook_ops output_hook;
 static struct sock *netlinkfd = NULL; //netlink
 DEFINE_HASHTABLE(state_table, 10); //状态哈希表
-LIST_HEAD(rule_table) // 规则链表
+LIST_HEAD(rule_table); // 规则链表
 
-int add_hashtable(){
+// declaration of function
+uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
+int add_hashtable(void);
+int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
+ulong hash_function(const struct keyword kw);
+int check_state_table(struct keyword kw);
+int check_rule_table(const struct keyword kw);
+int handle_rule_config(char* input);
+int send_to_user(char* info);
+void rcv_from_user(struct sk_buff *_skb);
+int compare_keywords(const struct keyword k1, const struct keyword k2);
 
-}
+
+int add_hashtable(){}
 
 
 
-unsigned int hook_input_func(void *priv,
+uint hook_input_func(void *priv,
 					   struct sk_buff *skb,
 					   const struct nf_hook_state *state)
 {
     // 先提取keywords
-    struct keyword kw; = extract_keyword(kw, skb);
+    struct keyword kw;
     int state_action, rule_action;
     
-    kw = extract_keyword(kw, skb);
+    extract_keyword(&kw, skb);
     state_action = check_state_table(kw);
-    rule_action = cheack_rule_table(kw);
+    rule_action = check_rule_table(kw);
     if(state_action == 1){
         return NF_ACCEPT;
     }else if(state_action == 2){
@@ -90,7 +103,14 @@ unsigned int hook_input_func(void *priv,
 	return NF_DROP;
 }
 
-int extract_keyword(struct keyword &kw, const struct sk_buff *skb){
+uint hook_output_func(void *priv,
+					   struct sk_buff *skb,
+					   const struct nf_hook_state *state)
+{
+    // 先提取keywords
+    return NF_ACCEPT;
+}
+int extract_keyword(struct keyword *kw, const struct sk_buff *skb){
     /**
      * 0 extract error
      * 1 ok 
@@ -107,27 +127,27 @@ int extract_keyword(struct keyword &kw, const struct sk_buff *skb){
     ip_header = (struct iphdr *)skb_network_header(skb);
 	if (!ip_header) return 0;
 
-    kw.src_ip = (unsigned long int)(ntohl(ip_header->saddr));
-	kw.dst_ip = (unsigned long int)(ntohl(ip_header->daddr));
-    kw.protocol = ip_header->protocol;
+    kw->src_ip = (ulong)(ntohl(ip_header->saddr));
+	kw->dst_ip = (ulong)(ntohl(ip_header->daddr));
+    kw->protocol = ip_header->protocol;
 
     switch(ip_header->protocol){
         // ICMP
         case 0x01:
-            kw.src_port = (uint)0;
-		    kw.dst_port = (uint)0; 
+            kw->src_port = (uint)0;
+		    kw->dst_port = (uint)0; 
             break;
         // TCP
         case 0x06:
 		    tcp_header = tcp_hdr(skb);
-		    kw.src_port = ntohs(tcp_header->source);
-		    kw.dst_port = ntohs(tcp_header->dest);
+		    kw->src_port = ntohs(tcp_header->source);
+		    kw->dst_port = ntohs(tcp_header->dest);
             break;
         
         case 0x11:
             udp_header = udp_hdr(skb);
-            kw.src_port = ntohs(udp_header->source);
-            kw.dst_port = ntohs(udp_header->dest);
+            kw->src_port = ntohs(udp_header->source);
+            kw->dst_port = ntohs(udp_header->dest);
             break;
         default:
             return 0;
@@ -135,34 +155,45 @@ int extract_keyword(struct keyword &kw, const struct sk_buff *skb){
     return 1;
 }
 
-unsigned long int hash_function(const struct keyword kw){
-    unsigned long int hash = 0;
+ulong hash_function(const struct keyword kw){
+    ulong hash = 0;
     return hash;
 }
-
+int compare_keywords(const struct keyword k1, const struct keyword k2){
+    return (k1.src_ip == k2.src_ip) && (k1.dst_ip == k2.dst_ip) && (k1.protocol == k2.protocol) \
+            && (k1.src_port == k2.src_port) && (k1.dst_port == k2.src_port);
+}
 int check_state_table(struct keyword kw){
-    unsigned long int hash = hash_function(kw);
-    struct state_node* current;
-    hash_for_each_possible(state_table, current, hash, next) {
-        if(current->hash == hash) {
-            if(compare_keywords(current->kw, kw)){
-                return current->action;
+    ulong hash = hash_function(kw);
+    struct state_node *obj;
+    hash_for_each_possible(state_table, obj, next, hash) {
+        if(obj->hash == hash) {
+            if(compare_keywords(obj->kw, kw)){
+                return obj->action;
             }
         }
     }
     return 0; //not find in state table
 }
 int check_rule_table(const struct keyword kw){
-    struct list_node cur;
+    return 0;
 }
 
 int handle_rule_config(char* input){
-    int size = strlen(input);
+    //int size = strlen(input);
     printk("handle_rule_config");
 
 }
 
 int send_to_user(char* info){
+    //1)declare a struct sk_buff*  
+    //2)declare a struct nlmsghdr *  
+    //3)call alloc_skb() to alloc the struct skb_buff   
+    //4)appenxid the struct nlmsg to the tail of the struct skb_buff  
+    //5)get the nlmsghdt ponit to the field of the struct skb_buff  
+    //6)init the fiels of the nlmsg  
+    //7)insrt the meg into the mlmsg  
+    //8)call the netlink_unicast() to transmit the struct skb_buff 
   	int size;
 	int retval;
     char input[1000];
@@ -246,7 +277,6 @@ static void exit_module(void)
 
     sock_release(netlinkfd->sk_socket);
 }
-
 
 
 module_init(init_module);
