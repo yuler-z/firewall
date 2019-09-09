@@ -57,7 +57,9 @@ struct rule_node {
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("U201614817");
 
-static struct nf_hook_ops nfho;
+static struct nf_hook_ops input_hook;
+static struct nf_hook_ops output_hook;
+static struct sock *netlinkfd = NULL; //netlink
 DEFINE_HASHTABLE(state_table, 10); //状态哈希表
 LIST_HEAD(rule_table) // 规则链表
 
@@ -87,7 +89,6 @@ unsigned int hook_input_func(void *priv,
     check_rule_table(kw);
 	return NF_DROP;
 }
-
 
 int extract_keyword(struct keyword &kw, const struct sk_buff *skb){
     /**
@@ -151,34 +152,102 @@ int check_state_table(struct keyword kw){
     }
     return 0; //not find in state table
 }
-
 int check_rule_table(const struct keyword kw){
     struct list_node cur;
-    for
 }
 
-static int init_driver(void)
+int handle_rule_config(char* input){
+    int size = strlen(input);
+    printk("handle_rule_config");
+
+}
+
+int send_to_user(char* info){
+  	int size;
+	int retval;
+    char input[1000];
+    struct sk_buff *skb;
+    struct nlmsghdr *nlh;
+    unsigned char *old_tail;
+    
+    memset(input, '\0', 1000*sizeof(char));
+    memcpy(input, info, strlen(info));
+    
+    size = NLMSG_SPACE(strlen(input));
+    skb = alloc_skb(size, GFP_ATOMIC);
+    nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(strlen(input))-sizeof(struct nlmsghdr), 0);  //put 
+    old_tail = skb->tail;
+    memcpy(NLMSG_DATA(nlh), input, strlen(input));
+    nlh->nlmsg_len = skb->tail - old_tail;
+    NETLINK_CB(skb).pid = 0;
+    NETLINK_CB(skb).dst_group = 0;
+    //printk(KERN_DEBUG "[kernel space] skb->data:%s\n", (char *)NLMSG_DATA((struct nlmsghdr *)skb->data));
+    retval = netlink_unicast(netlinkfd, skb, user_process.pid, MSG_DONTWAIT);
+    printk(KERN_DEBUG "[kernel space] netlink_unicast return: %d\n", retval);
+    return 0;  
+}
+void rcv_from_user(struct sk_buff *_skb)
+{
+    struct sk_buff *skb;
+    struct nlmsghdr *nlhdr = NULL;
+
+    skb = skb_get(_skb);
+
+	if(skb->len >= sizeof(struct nlmsghdr)){
+		nlh = (struct nlmsghdr *)skb->data;
+		if((nlh->nlmsg_len >= sizeof(struct nlmsghdr)) && (__skb->len >= nlh->nlmsg_len)){
+			user_process.pid = nlh->nlmsg_pid;
+			handle_rule_config((char *)NLMSG_DATA(nlh));
+		}
+	}else{
+		handle_rule_config((char *)NLMSG_DATA(nlmsg_hdr(__skb)));
+	}
+    kfree_skb(skb);
+}
+static int init_module(void)
 {
 	printk("test module loaded.\n");
 
-	// hook
-	nfho.hook = hook_input_func;
-	//	nfho.owner = NULL;
-	nfho.dev = dev_get_by_name(&init_net, "ens33");
-	nfho.pf = PF_INET;
-	nfho.hooknum = NF_INET_LOCAL_OUT;
-	nfho.priority = NF_IP_PRI_FIRST; //new version, maybe changed to NF_INET_PRI_FIRST
-	nf_register_net_hook(&init_net, &nfho);
+	// initialize input hook(pre-routing) 
+	input_hook.hook = hook_input_func; // hook function
+	input_hook.dev = dev_get_by_name(&init_net, "ens33");
+	input_hook.pf = PF_INET; // protocol family
+	input_hook.hooknum = NF_INET_LOCAL_IN; // where 
+	input_hook.priority = NF_IP_PRI_FIRST;  // priority
+
+    // initialize output hook(post-routing)
+    output_hook.hook = hook_output_func;
+    output_hook.dev = dev_get_by_name(&init_net, "ens33");
+    output_hook.pf = PF_INET;
+    output_hook.hooknum = NF_INET_LOCAL_OUT;
+    output_hook.priority = NF_IP_PRI_FIRST;
+
+    // register hook
+	nf_register_net_hook(&init_net, &input_hook);
+	nf_register_net_hook(&init_net, &output_hook);
+
+    // netlink create
+    struct netlink_kernel_cfg cfg = { 
+        .input  = rcv_from_user, /* set recv callback */
+    }; 
+    netlinkfd = netlink_kernel_create(&init_net, NETLINK_TEST, &cfg);
+    if(!netlinkfd)    {
+        //create failed
+        return -1;
+    }
+
 	return 0;
 }
 
-static void exit_driver(void)
+static void exit_module(void)
 {
 	printk("test module exit ...\n");
-	nf_unregister_net_hook(&init_net, &nfho); //取消钩子注册
+	nf_unregister_net_hook(&init_net, &input_hook); //取消钩子注册
+
+    sock_release(netlinkfd->sk_socket);
 }
 
 
 
-module_init(init_driver);
-module_exit(exit_driver);
+module_init(init_module);
+module_exit(exit_module);
