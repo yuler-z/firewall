@@ -89,6 +89,8 @@ uint hook_input_func(void *priv,
 					   struct sk_buff *skb,
 					   const struct nf_hook_state *state)
 {
+    return NF_ACCEPT;
+    /*
     // 先提取keywords
     struct keyword kw;
     int state_action, rule_action;
@@ -104,6 +106,7 @@ uint hook_input_func(void *priv,
     
     check_rule_table(kw);
 	return NF_DROP;
+    */
 }
 
 uint hook_output_func(void *priv,
@@ -249,7 +252,7 @@ int init_mod(void)
     struct netlink_kernel_cfg cfg = { 
         .input  = rcv_from_user, /* set recv callback */
     }; 
-    
+
 	printk("test module loaded.\n");
 
 	// initialize input hook(pre-routing) 
