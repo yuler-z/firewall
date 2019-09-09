@@ -34,7 +34,7 @@ int main(int argc, char* argv[])
     //初始化
     struct sockaddr_nl saddr; // source socket addr
     struct sockaddr_nl daddr; // dest socket addr
-    int skfd; // socket file description
+    int skfd; // the file description of netlink socket
     int ret, daddrlen = sizeof(struct sockaddr_nl);
     struct nlmsghdr *message;
     struct u_packet_info info;

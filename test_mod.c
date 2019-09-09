@@ -61,7 +61,7 @@ MODULE_AUTHOR("U201614817");
 
 static struct nf_hook_ops input_hook;
 static struct nf_hook_ops output_hook;
-static struct sock *netlinkfd = NULL; //netlink
+static struct sock *nlfd = NULL; //netlink
 DEFINE_HASHTABLE(state_table, 10); //状态哈希表
 LIST_HEAD(rule_table); // 规则链表
 
@@ -73,7 +73,7 @@ ulong hash_function(const struct keyword kw);
 int check_state_table(struct keyword kw);
 int check_rule_table(const struct keyword kw);
 int handle_rule_config(char* input);
-int send_to_user(char* info);
+int send_to_user(char* data);
 void rcv_from_user(struct sk_buff *_skb);
 int compare_keywords(const struct keyword k1, const struct keyword k2);
 
@@ -185,7 +185,7 @@ int handle_rule_config(char* input){
 
 }
 
-int send_to_user(char* info){
+int send_to_user(char* data){
     //1)declare a struct sk_buff*  
     //2)declare a struct nlmsghdr *  
     //3)call alloc_skb() to alloc the struct skb_buff   
@@ -202,7 +202,7 @@ int send_to_user(char* info){
     unsigned char *old_tail;
     
     memset(input, '\0', 1000*sizeof(char));
-    memcpy(input, info, strlen(info));
+    memcpy(input, data, strlen(data));
     
     size = NLMSG_SPACE(strlen(input));
     skb = alloc_skb(size, GFP_ATOMIC);
@@ -213,25 +213,20 @@ int send_to_user(char* info){
     NETLINK_CB(skb).pid = 0;
     NETLINK_CB(skb).dst_group = 0;
     //printk(KERN_DEBUG "[kernel space] skb->data:%s\n", (char *)NLMSG_DATA((struct nlmsghdr *)skb->data));
-    retval = netlink_unicast(netlinkfd, skb, user_process.pid, MSG_DONTWAIT);
+    retval = netlink_unicast(nlfd, skb, user_process.pid, MSG_DONTWAIT);
     printk(KERN_DEBUG "[kernel space] netlink_unicast return: %d\n", retval);
     return 0;  
 }
-void rcv_from_user(struct sk_buff *_skb)
+void rcv_from_user(struct sk_buff *__skb)
 {
     struct sk_buff *skb;
     struct nlmsghdr *nlhdr = NULL;
 
-    skb = skb_get(_skb);
+    skb = skb_get(__skb);
 
-	if(skb->len >= sizeof(struct nlmsghdr)){
-		nlh = (struct nlmsghdr *)skb->data;
-		if((nlh->nlmsg_len >= sizeof(struct nlmsghdr)) && (__skb->len >= nlh->nlmsg_len)){
-			user_process.pid = nlh->nlmsg_pid;
-			handle_rule_config((char *)NLMSG_DATA(nlh));
-		}
-	}else{
-		handle_rule_config((char *)NLMSG_DATA(nlmsg_hdr(__skb)));
+	if(skb->len >= NLMSG_SPACE(0)){
+		nlh = nlmsg_hdr(skb);
+        handle_rule_config((char*)NLMSG_DATA(nlh));
 	}
     kfree_skb(skb);
 }
@@ -261,8 +256,8 @@ static int init_module(void)
     struct netlink_kernel_cfg cfg = { 
         .input  = rcv_from_user, /* set recv callback */
     }; 
-    netlinkfd = netlink_kernel_create(&init_net, NETLINK_TEST, &cfg);
-    if(!netlinkfd)    {
+    nlfd = netlink_kernel_create(&init_net, NETLINK_TEST, &cfg);
+    if(!nlfd)    {
         //create failed
         return -1;
     }
@@ -275,7 +270,7 @@ static void exit_module(void)
 	printk("test module exit ...\n");
 	nf_unregister_net_hook(&init_net, &input_hook); //取消钩子注册
 
-    sock_release(netlinkfd->sk_socket);
+    sock_release(nlfd->sk_socket);
 }
 
 
