@@ -2,3 +2,5 @@ user
 *.md
 *.o
 *.ko
+*.symvers
+*.order

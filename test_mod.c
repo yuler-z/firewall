@@ -46,7 +46,7 @@ struct state_node {
     struct keyword kw;
     ulong hash;
     int action; // 0 = not find, 1 = allow, 2 = deny
-    struct hlist_node next;
+    struct hlist_node list;
 };
 
 /*----Rule LinkedList---*/
@@ -64,7 +64,7 @@ struct rule {
 
 struct rule_node {
   struct rule rule;
-  struct list_head next;  
+  struct list_head list;  
 };
 
 /*----global variable----*/
@@ -80,6 +80,10 @@ LIST_HEAD(rule_table); // init rule linkedlist
 uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 int add_hashtable(void);
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
+char* keyword_toString(char* output, struct keyword kw);
+char* rule_toString(char* output, struct rule r);
+int compare_rule(const struct rule r, const struct keyword kw);
+int compare_rule(const struct rule r, const struct keyword kw);
 ulong hash_function(const struct keyword kw);
 int check_state_table(struct keyword kw);
 int check_rule_table(const struct keyword kw);
@@ -99,29 +103,35 @@ uint hook_input_func(void *priv,
 					   struct sk_buff *skb,
 					   const struct nf_hook_state *state)
 {
-    return NF_ACCEPT;
 
     // 先提取keywords
     struct keyword kw;
     int state_action, rule_action;
     
     extract_keyword(&kw, skb);
-    state_action = check_state_table(kw);
+    return NF_ACCEPT;
+
+ /*   state_action = check_state_table(kw);
     
     if(state_action == ALLOW){
         return NF_ACCEPT;
     }else if(state_action == DENY){
         return NF_DROP;
     }
+*/
 
     rule_action = check_rule_table(kw);
     if(rule_action == ALLOW){
         return NF_ACCEPT;
     }else if(rule_action == DENY){
-        return NF_DROP
+        char output[200];
+        keyword_toString(output, kw);
+        printk("[drop packet:%s]",output);
+        return NF_DROP;
     }
 
     return DEFAULT_ACTION;
+
     
 }
 
@@ -137,10 +147,7 @@ int extract_keyword(struct keyword *kw, const struct sk_buff *skb){
      * 0 extract error
      * 1 ok 
      */
-
-    // The Network Layer Header
     struct iphdr *ip_header;
-    // The Transport Layer Header
     struct udphdr *udp_header;
     struct tcphdr *tcp_header;
     if(!skb) return 0; 
@@ -174,9 +181,9 @@ int extract_keyword(struct keyword *kw, const struct sk_buff *skb){
         default:
             return 0;
     }
-    char output[200];
-    keyword_toString(output, *kw);
-    printk("[extract_keyword:%s]",output);
+    //char output[200];
+    //keyword_toString(output, *kw);
+    // printk("[extract_keyword:%s]",output);
     return 1;
 }
 
@@ -205,7 +212,7 @@ int compare_rule(const struct rule r, const struct keyword kw){
 int check_state_table(struct keyword kw){
     ulong hash = hash_function(kw);
     struct state_node *p;
-    hash_for_each_possible(state_table, p, next, hash) {
+    hash_for_each_possible(state_table, p, list, hash) {
         if(p->hash == hash) {
             if(compare_keywords(p->kw, kw)){
                 return p->action;
@@ -217,9 +224,9 @@ int check_state_table(struct keyword kw){
 
 int check_rule_table(const struct keyword kw){
     struct rule_node *p;
-    list_for_each_entry(p, &rule_table, next){
-        if(compare_rule(p->rule, kw) == TRUE){
-            return p->action;
+    list_for_each_entry(p, &rule_table, list){
+        if(compare_rule(p->rule, kw)){
+            return p->rule.action;
         }
     }
     return 0; // not find in rule table
@@ -251,31 +258,31 @@ char* keyword_toString(char* output, struct keyword kw){
     char* protocol = "error";
 
     // src_ip
-    src_ip[3] = r.src_ip % 256;
-    r.src_ip /= 256;
-    src_ip[2] = r.src_ip % 256;
-    r.src_ip /= 256;
-    src_ip[1] = r.src_ip % 256;
-    r.src_ip /= 256;
-    src_ip[0] = r.src_ip % 256;
+    src_ip[3] = kw.src_ip % 256;
+    kw.src_ip /= 256;
+    src_ip[2] = kw.src_ip % 256;
+    kw.src_ip /= 256;
+    src_ip[1] = kw.src_ip % 256;
+    kw.src_ip /= 256;
+    src_ip[0] = kw.src_ip % 256;
 
     //src_port
-    src_port = r.src_port;
+    src_port = kw.src_port;
 
     // dst_ip
-    dst_ip[3] = r.dst_ip % 256;
-    r.dst_ip /= 256;
-    dst_ip[2] = r.dst_ip % 256;
-    r.dst_ip /= 256;
-    dst_ip[1] = r.dst_ip % 256;
-    r.dst_ip /= 256;
-    dst_ip[0] = r.dst_ip % 256;
+    dst_ip[3] = kw.dst_ip % 256;
+    kw.dst_ip /= 256;
+    dst_ip[2] = kw.dst_ip % 256;
+    kw.dst_ip /= 256;
+    dst_ip[1] = kw.dst_ip % 256;
+    kw.dst_ip /= 256;
+    dst_ip[0] = kw.dst_ip % 256;
 
     //dst_port
-    dst_port = r.dst_port;
+    dst_port = kw.dst_port;
 
     //protocol
-    switch(r.protocol){
+    switch(kw.protocol){
         case 0x01:
             protocol = "icmp";
             break;
@@ -374,10 +381,10 @@ int generate_one_rule(char* input){
     char *pch;
     char *piece;
 
-    struct rule_node node;
+    struct rule_node *node = (struct rule_node *)kmalloc(sizeof(struct rule_node *));
     struct rule tmp;
     while((pch  = strsep(&input, " "))){
-        printk("[generate_one_rule no.%d]:%s", num, pch);
+        // printk("[generate_one_rule no.%d]:%s", num, pch);
         switch(index){
             // source ip/maskoff
             case 0:
@@ -454,8 +461,8 @@ int generate_one_rule(char* input){
         index++;
     }
     // add rule into rule_table
-    node.rule = tmp;
-    list_add_tail(&node.next, &rule_table);
+    node->rule = tmp;
+    list_add(&node->list, &rule_table);
 
     char output[200];
     rule_toString(output, tmp);
@@ -476,9 +483,9 @@ int handle_rule_config(char* input){
         num++;
     }
     // debug: print rule table
-    struct rule_head *p;
+    struct rule_node *p;
     char output[200];
-    list_for_each_entry(p, &rule_table, next){
+    list_for_each_entry(p, &rule_table, list){
         rule_toString(output, p->rule);
         printk("[rule table foreach]:%s", output);
     }
@@ -547,7 +554,7 @@ int init_mod(void)
         .input  = rcv_from_user, /* set recv callback */
     }; 
 
-	printk("test module loaded.\n");
+	printk("firewall module loaded.\n");
 
 	// initialize input hook(pre-routing) 
 	input_hook.hook = hook_input_func; // hook function
@@ -579,7 +586,7 @@ int init_mod(void)
 
 void exit_mod(void)
 {
-	printk("test module exit ...\n");
+	printk("firewall module exit ...\n");
 	nf_unregister_net_hook(&init_net, &input_hook); //取消钩子注册
 	nf_unregister_net_hook(&init_net, &output_hook); //取消钩子注册
 
