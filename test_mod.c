@@ -301,11 +301,14 @@ int generate_one_rule(char* input){
                     in--;
                 }
                 if(in == 0) tmp.src_maskoff = 0xffffffff;
+                printk("[src_ip:%02lX", tmp.src_ip);
+                printk("[src_maskoff:%02lX",tmp.src_maskoff);
                 break;
             }
             // source port
             case 1:
                 tmp.src_port = (uint)simple_strtol(pch, NULL, 10);
+                printk("[src_port:%u]", tmp.src_port);
                 break;
 
             // destination ip/maskoff
@@ -321,10 +324,13 @@ int generate_one_rule(char* input){
                     in--;
                 }
                 if(in == 0) tmp.dst_maskoff = 0xffffffff;
+                printk("[dst_ip:%02lX", tmp.dst_ip);
+                printk("[dst_maskoff:%02lX",tmp.dst_maskoff);
                 break;
             }
             case 3:
                 tmp.dst_port = (uint)simple_strtol(pch, NULL, 10);
+                printk("[dst_port:%u]", tmp.dst_port);
                 break;
 
             // protocol
@@ -339,6 +345,7 @@ int generate_one_rule(char* input){
 					tmp.protocol = 0x01; //icmp
 				else
 					return -1;
+                printk("[protocol:%02X]:",tmp.protocol);
 				break;
 
             // action
@@ -348,6 +355,7 @@ int generate_one_rule(char* input){
                 }else if(pch[0] == 'd' || pch[0] == 'D'){
                     tmp.action = 2;
                 }
+                printk("[action:%d]", tmp.action);
             // log
             // TODO logo 
         }
@@ -364,7 +372,8 @@ int handle_rule_config(char* input){
     char *pch;
     printk("[handle_rule_config]:%s", input);
     while ((pch = strsep(&input, "#")))
-    {   
+    {  
+        if(strcmp(pch, "") == 0)  continue;
         printk("[handle_rule_config no.%d]:%s", num, pch);
         generate_one_rule(pch);
         num++;
