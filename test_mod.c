@@ -360,11 +360,14 @@ int generate_one_rule(char* input){
 }
 int handle_rule_config(char* input){
     //int size = strlen(input);
+    int num = 1;
     char *pch;
     printk("[handle_rule_config]:%s", input);
     while ((pch = strsep(&input, "#")))
-    {
+    {   
+        printk("[handle_rule_config no.%d]:%s", num, pch);
         generate_one_rule(pch);
+        num++;
     }
     // TODO: generate rule table
     send_to_user("Hello, I received your msg.");
