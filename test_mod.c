@@ -280,11 +280,13 @@ char* rule_toString(char* output, struct rule r){
 int generate_one_rule(char* input){
     // example: 192.168.57.0/24:20 192.168.52.0/26:40 tcp deny
     int index = 0; // index: 0~3
+    int num = 1;
     char *pch;
     char *piece;
     char output[200];
     struct rule tmp;
     while((pch  = strsep(&input, " "))){
+        printk("[generate_one_rule no.%d]:", num, pch);
         switch(index){
             // source ip/maskoff
             case 0:
@@ -349,6 +351,7 @@ int generate_one_rule(char* input){
             // log
             // TODO logo 
         }
+        num++;
     }
 
     rule_toString(output, tmp);
