@@ -19,28 +19,27 @@
 #include <linux/types.h>
 #include <linux/list.h>
 
-#define NETLINK_TEST 25 // value > 16
-
 #define uint unsigned int
+#define ulong unsigned long
 
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("U201614817");
+
+#define NETLINK_TEST 25 // value > 16
+#define DEFAULT_ACTION NF_DROP
+// action macro
+#define NOT_FIND 0
+#define ALLOW 1
+#define DENY 2
+
+
+/****Keyword Hashtable****/
 struct keyword {
 	uint src_ip;
 	uint dst_ip;
 	uint protocol;
     uint src_port;
 	uint dst_port;
-};
-
-struct rule {
-	uint src_ip;  
-    uint src_maskoff;
-	uint src_port; 
-	uint dst_ip; 
-	uint dst_maskoff;
-	uint dst_port;
-	int protocol; 
-    int action; // 1 = allow, 2 = deny 
-	int log; 
 };
 
 struct state_node {
@@ -50,22 +49,34 @@ struct state_node {
     struct hlist_node next;
 };
 
-struct rule_node {
-  struct rule rule;
-  struct list_head list;  
+/*----Rule LinkedList---*/
+struct rule {
+	uint src_ip;  
+    uint src_maskoff;
+	uint src_port; 
+	uint dst_ip; 
+	uint dst_maskoff;
+	uint dst_port;
+	int protocol; 
+    int action; // 0 = not find, 1 = allow, 2 = deny 
+	int log; 
 };
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("U201614817");
+struct rule_node {
+  struct rule rule;
+  struct list_head next;  
+};
 
-int user_pid;
-static struct nf_hook_ops input_hook;
-static struct nf_hook_ops output_hook;
-static struct sock *nlfd = NULL; //netlink
-DEFINE_HASHTABLE(state_table, 10); //状态哈希表
-LIST_HEAD(rule_table); // 规则链表
+/*----global variable----*/
+int user_pid; //user process id
+static struct nf_hook_ops input_hook; //input hook
+static struct nf_hook_ops output_hook; // output hook
+static struct sock *nlfd = NULL; //netlink file description
+DEFINE_HASHTABLE(state_table, 10); //init keyword hashtable
+LIST_HEAD(rule_table); // init rule linkedlist
 
-// declaration of function
+
+/*----declaration of function----*/
 uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 int add_hashtable(void);
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
@@ -89,23 +100,29 @@ uint hook_input_func(void *priv,
 					   const struct nf_hook_state *state)
 {
     return NF_ACCEPT;
-    /*
+
     // 先提取keywords
     struct keyword kw;
     int state_action, rule_action;
     
     extract_keyword(&kw, skb);
     state_action = check_state_table(kw);
-    rule_action = check_rule_table(kw);
-    if(state_action == 1){
+    
+    if(state_action == ALLOW){
         return NF_ACCEPT;
-    }else if(state_action == 2){
+    }else if(state_action == DENY){
         return NF_DROP;
     }
+
+    rule_action = check_rule_table(kw);
+    if(rule_action == ALLOW){
+        return NF_ACCEPT;
+    }else if(rule_action == DENY){
+        return NF_DROP
+    }
+
+    return DEFAULT_ACTION;
     
-    check_rule_table(kw);
-	return NF_DROP;
-    */
 }
 
 uint hook_output_func(void *priv,
@@ -168,22 +185,30 @@ int compare_keywords(const struct keyword k1, const struct keyword k2){
     return (k1.src_ip == k2.src_ip) && (k1.dst_ip == k2.dst_ip) && (k1.protocol == k2.protocol) \
             && (k1.src_port == k2.src_port) && (k1.dst_port == k2.src_port);
 }
+int compare_rule(const struct rule r, const struct keyword kw){
+    
+}
 int check_state_table(struct keyword kw){
     ulong hash = hash_function(kw);
-    struct state_node *obj;
-    hash_for_each_possible(state_table, obj, next, hash) {
-        if(obj->hash == hash) {
-            if(compare_keywords(obj->kw, kw)){
-                return obj->action;
+    struct state_node *p;
+    hash_for_each_possible(state_table, p, next, hash) {
+        if(p->hash == hash) {
+            if(compare_keywords(p->kw, kw)){
+                return p->action;
             }
         }
     }
     return 0; //not find in state table
 }
+
 int check_rule_table(const struct keyword kw){
-
-
-    return 0;
+    struct rule_node *p;
+    list_for_each_entry(p, &rule_table, next){
+        if(compare_rule(p->rule, kw) == TRUE){
+            return p->action;
+        }
+    }
+    return 0; // not find in rule table
 }
 
 // 
@@ -283,6 +308,7 @@ int generate_one_rule(char* input){
     char *pch;
     char *piece;
     char output[200];
+    struct rule_node node;
     struct rule tmp;
     while((pch  = strsep(&input, " "))){
         printk("[generate_one_rule no.%d]:%s", num, pch);
@@ -361,7 +387,9 @@ int generate_one_rule(char* input){
         num++;
         index++;
     }
-    
+    // add rule into rule_table
+    node.rule = tmp;
+    list_add_tail(&node.next, &rule_table);
 
     rule_toString(output, tmp);
     printk("[rule added]:%s",output);
@@ -379,7 +407,14 @@ int handle_rule_config(char* input){
         generate_one_rule(pch);
         num++;
     }
-    // TODO: generate rule table
+    // debug: print rule table
+    struct rule_head *p;
+    char output[200];
+    list_for_each_entry(p, &rule_table, next){
+        rule_toString(output, p->rule);
+        printk("[rule table foreach]:%s", output);
+    }
+
     send_to_user("Hello, I received your msg.");
     return 0;
 }
@@ -483,6 +518,7 @@ void exit_mod(void)
 
     sock_release(nlfd->sk_socket);
 }
+
 
 
 module_init(init_mod);
