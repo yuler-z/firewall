@@ -21,23 +21,22 @@
 
 #define NETLINK_TEST 25 // value > 16
 
-#define uint uint
-#define ulong ulong
+#define uint unsigned int
 
 struct keyword {
-	ulong src_ip;
-	ulong dst_ip;
+	uint src_ip;
+	uint dst_ip;
 	uint protocol;
     uint src_port;
 	uint dst_port;
 };
 
 struct rule {
-	ulong src_ip;  
-    ulong src_maskoff;
+	uint src_ip;  
+    uint src_maskoff;
 	uint src_port; 
-	ulong dst_ip; 
-	ulong dst_maskoff;
+	uint dst_ip; 
+	uint dst_maskoff;
 	uint dst_port;
 	int protocol; 
     int action; // 1 = allow, 2 = deny 
@@ -133,8 +132,8 @@ int extract_keyword(struct keyword *kw, const struct sk_buff *skb){
     ip_header = (struct iphdr *)skb_network_header(skb);
 	if (!ip_header) return 0;
 
-    kw->src_ip = (ulong)(ntohl(ip_header->saddr));
-	kw->dst_ip = (ulong)(ntohl(ip_header->daddr));
+    kw->src_ip = (uint)(ntohl(ip_header->saddr));
+	kw->dst_ip = (uint)(ntohl(ip_header->daddr));
     kw->protocol = ip_header->protocol;
 
     switch(ip_header->protocol){
@@ -188,10 +187,10 @@ int check_rule_table(const struct keyword kw){
 }
 
 // 
-ulong convert_ip(char* ip){
+uint convert_ip(char* ip){
     char* token = NULL;
     int num = 0;
-    ulong total = 0;
+    uint total = 0;
     int index = 3;
      
     while((token = strsep(&ip, "."))){
@@ -292,7 +291,7 @@ int generate_one_rule(char* input){
             case 0:
             {
                 int in = 1;
-                while((piece = strsep(&pch, ":"))){
+                while((piece = strsep(&pch, "/"))){
                     if(in == 1){
                         tmp.src_ip = convert_ip(piece);
                     }else{
@@ -301,21 +300,21 @@ int generate_one_rule(char* input){
                     in--;
                 }
                 if(in == 0) tmp.src_maskoff = 0xffffffff;
-                printk("[src_ip:%02lX", tmp.src_ip);
-                printk("[src_maskoff:%02lX",tmp.src_maskoff);
+                // printk("[src_ip:%02X", tmp.src_ip);
+                // printk("[src_maskoff:%02X",tmp.src_maskoff);
                 break;
             }
             // source port
             case 1:
                 tmp.src_port = (uint)simple_strtol(pch, NULL, 10);
-                printk("[src_port:%u]", tmp.src_port);
+                // printk("[src_port:%u]", tmp.src_port);
                 break;
 
             // destination ip/maskoff
             case 2:
             {
                 int in = 1;
-                while((piece = strsep(&pch, ":"))){
+                while((piece = strsep(&pch, "/"))){
                     if(in == 1){
                         tmp.dst_ip = convert_ip(piece);
                     }else{
@@ -324,13 +323,13 @@ int generate_one_rule(char* input){
                     in--;
                 }
                 if(in == 0) tmp.dst_maskoff = 0xffffffff;
-                printk("[dst_ip:%02lX", tmp.dst_ip);
-                printk("[dst_maskoff:%02lX",tmp.dst_maskoff);
+                // printk("[dst_ip:%02X", tmp.dst_ip);
+                // printk("[dst_maskoff:%02X",tmp.dst_maskoff);
                 break;
             }
             case 3:
                 tmp.dst_port = (uint)simple_strtol(pch, NULL, 10);
-                printk("[dst_port:%u]", tmp.dst_port);
+                // printk("[dst_port:%u]", tmp.dst_port);
                 break;
 
             // protocol
@@ -345,7 +344,7 @@ int generate_one_rule(char* input){
 					tmp.protocol = 0x01; //icmp
 				else
 					return -1;
-                printk("[protocol:%02X]:",tmp.protocol);
+                // printk("[protocol:%02X]:",tmp.protocol);
 				break;
 
             // action
@@ -355,13 +354,14 @@ int generate_one_rule(char* input){
                 }else if(pch[0] == 'd' || pch[0] == 'D'){
                     tmp.action = 2;
                 }
-                printk("[action:%d]", tmp.action);
+                // printk("[action:%d]", tmp.action);
             // log
             // TODO logo 
         }
         num++;
         index++;
     }
+    
 
     rule_toString(output, tmp);
     printk("[rule added]:%s",output);
