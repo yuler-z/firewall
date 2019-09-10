@@ -303,50 +303,56 @@ char* keyword_toString(char* output, struct keyword kw){
     return output;     
 }
 
-char* rule_toString(char* output, struct rule r){
-    int src_ip[4];
+char* rule_toString(char* output, const struct rule *pr){
+    int src_ip_arr[4];
     uint src_port;
-    int src_maskoff = 0;
-    int dst_ip[4];
+    int src_maskoff_num = 0;
+    int dst_ip_arr[4];
     uint dst_port;
-    int  dst_maskoff = 0;
+    int  dst_maskoff_num = 0;
     char* protocol = "error";
     char* action = "error";
 
+    uint src_ip = pr->dst_ip;
+    uint dst_ip = pr->dst_ip;
+    uint maskoff;
+
     // src_ip
-    src_ip[3] = r.src_ip % 256;
-    r.src_ip /= 256;
-    src_ip[2] = r.src_ip % 256;
-    r.src_ip /= 256;
-    src_ip[1] = r.src_ip % 256;
-    r.src_ip /= 256;
-    src_ip[0] = r.src_ip % 256;
+    src_ip_arr[3] = src_ip % 256;
+    src_ip /= 256;
+    src_ip_arr[2] = src_ip % 256;
+    src_ip /= 256;
+    src_ip_arr[1] = src_ip % 256;
+    src_ip /= 256;
+    src_ip_arr[0] = src_ip % 256;
 
     //src_port
-    src_port = r.src_port;
-    while(r.src_maskoff){
-        src_maskoff++;
-        r.src_maskoff = r.src_maskoff << 1;
+    src_port = pr->src_port;
+    maskoff = pr->src_maskoff;
+    while(maskoff){
+        src_maskoff_num++;
+        maskoff = maskoff << 1;
     }
 
-    // dst_ip
-    dst_ip[3] = r.dst_ip % 256;
-    r.dst_ip /= 256;
-    dst_ip[2] = r.dst_ip % 256;
-    r.dst_ip /= 256;
-    dst_ip[1] = r.dst_ip % 256;
-    r.dst_ip /= 256;
-    dst_ip[0] = r.dst_ip % 256;
+    // dst_ip_arr
+    dst_ip_arr[3] = pr->dst_ip_arr % 256;
+    pr->dst_ip_arr /= 256;
+    dst_ip_arr[2] = pr->dst_ip_arr % 256;
+    pr->dst_ip_arr /= 256;
+    dst_ip_arr[1] = pr->dst_ip_arr % 256;
+    pr->dst_ip_arr /= 256;
+    dst_ip_arr[0] = pr->dst_ip_arr % 256;
 
     //dst_port
-    dst_port = r.dst_port;
-    while(r.dst_maskoff){
-        dst_maskoff++;
-        r.dst_maskoff = r.dst_maskoff << 1;
+    dst_port = pr->dst_port;
+    maskoff = pr->src_maskoff;
+    while(maskoff){
+        dst_maskoff_num++;
+        dst_maskoff = dst_maskoff << 1;
     }
 
     //protocol
-    switch(r.protocol){
+    switch(pr->protocol){
         case 0x01:
             protocol = "icmp";
             break;
@@ -362,14 +368,14 @@ char* rule_toString(char* output, struct rule r){
     }
 
     //action
-    if(r.action == 1){
+    if(pr->action == 1){
         action = "allow";
     }else{
         action = "deny";
     }
 
-    snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s",src_ip[0], src_ip[1], src_ip[2], src_ip[3], src_maskoff, src_port,\
-                                                     dst_ip[0], dst_ip[1], dst_ip[2], dst_ip[3], dst_maskoff, dst_port,\
+    snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
+                                                     dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_maskoff_num, dst_port,\
                                                      protocol, action);
     return output; 
 }
@@ -381,7 +387,7 @@ int generate_one_rule(char* input){
     char *pch;
     char *piece;
 
-    struct rule_node *node = (struct rule_node *)kmalloc(sizeof(struct rule_node *));
+    struct rule_node *node = (struct rule_node *)kmalloc(sizeof(struct rule_node *), GFP_KERNEL);
     struct rule tmp;
     while((pch  = strsep(&input, " "))){
         // printk("[generate_one_rule no.%d]:%s", num, pch);
