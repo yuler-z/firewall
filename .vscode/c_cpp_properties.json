@@ -3,7 +3,7 @@
         {
             "name": "Linux",
             "includePath": [
-                "/usr/src/linux-headers-5.0.0-23-generic/include/**",
+                "/usr/src/linux-headers-5.0.0-27-generic/include/**",
                 "${workspaceFolder}/**"
             ],
             "defines": [],

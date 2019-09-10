@@ -34,13 +34,13 @@ struct keyword {
 
 struct rule {
 	ulong src_ip;  
-    ulong src_mask;
-	ulong dest_ip; 
-	ulong maskoff;
+    ulong src_maskoff;
 	uint src_port; 
-	uint dest_port;
-	uint protocol; 
-    int action; // deny or allow
+	ulong dst_ip; 
+	ulong dst_maskoff;
+	uint dst_port;
+	int protocol; 
+    int action; // 1 = allow, 2 = deny 
 	int log; 
 };
 
@@ -149,7 +149,7 @@ int extract_keyword(struct keyword *kw, const struct sk_buff *skb){
 		    kw->src_port = ntohs(tcp_header->source);
 		    kw->dst_port = ntohs(tcp_header->dest);
             break;
-        
+        // UDP 
         case 0x11:
             udp_header = udp_hdr(skb);
             kw->src_port = ntohs(udp_header->source);
@@ -187,10 +187,184 @@ int check_rule_table(const struct keyword kw){
     return 0;
 }
 
+// 
+ulong convert_ip(char* ip){
+    char* token = NULL;
+    int num = 0;
+    ulong total = 0;
+    int index = 3;
+     
+    while((token = strsep(&ip, "."))){
+        int i;
+        num = simple_strtoul(token, NULL, 10);
+        for(i = 0; i < index; i++){
+           num *= 255;
+        }
+        total += num;
+        index--;
+    }
+    return total;
+}
+
+char* rule_toString(char* output, struct rule r){
+    int src_ip[4];
+    uint src_port;
+    int src_maskoff = 0;
+    int dst_ip[4];
+    uint dst_port;
+    int  dst_maskoff = 0;
+    char* protocol = "error";
+    char* action = "error";
+
+    // src_ip
+    src_ip[3] = r.src_ip % 256;
+    r.src_ip /= 256;
+    src_ip[2] = r.src_ip % 256;
+    r.src_ip /= 256;
+    src_ip[1] = r.src_ip % 256;
+    r.src_ip /= 256;
+    src_ip[0] = r.src_ip % 256;
+
+    //src_port
+    src_port = r.src_port;
+    while(r.src_maskoff){
+        src_maskoff++;
+        r.src_maskoff = r.src_maskoff << 1;
+    }
+
+    // dst_ip
+    dst_ip[3] = r.dst_ip % 256;
+    r.dst_ip /= 256;
+    dst_ip[2] = r.dst_ip % 256;
+    r.dst_ip /= 256;
+    dst_ip[1] = r.dst_ip % 256;
+    r.dst_ip /= 256;
+    dst_ip[0] = r.dst_ip % 256;
+
+    //dst_port
+    dst_port = r.dst_port;
+    while(r.dst_maskoff){
+        dst_maskoff++;
+        r.dst_maskoff = r.dst_maskoff << 1;
+    }
+
+    //protocol
+    switch(r.protocol){
+        case 0x01:
+            protocol = "icmp";
+            break;
+        case 0x06:
+            protocol = "tcp";
+            break;
+        case 0x11:
+            protocol = "udp";
+            break;
+        case -1:
+            protocol = "all";
+            break;
+    }
+
+    //action
+    if(r.action == 1){
+        action = "allow";
+    }else{
+        action = "deny";
+    }
+
+    snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s",src_ip[0], src_ip[1], src_ip[2], src_ip[3], src_maskoff, src_port,\
+                                                     dst_ip[0], dst_ip[1], dst_ip[2], dst_ip[3], dst_maskoff, dst_port,\
+                                                     protocol, action);
+    return output; 
+}
+
+int generate_one_rule(char* input){
+    // example: 192.168.57.0/24:20 192.168.52.0/26:40 tcp deny
+    int index = 0; // index: 0~3
+    char *pch;
+    char *piece;
+    char output[200];
+    struct rule tmp;
+    while((pch  = strsep(&input, " "))){
+        switch(index){
+            // source ip/maskoff
+            case 0:
+            {
+                int in = 1;
+                while((piece = strsep(&pch, ":"))){
+                    if(in == 1){
+                        tmp.src_ip = convert_ip(piece);
+                    }else{
+                        tmp.src_maskoff = 0xffffffff << (simple_strtol(piece, NULL, 10));
+                    }
+                    in--;
+                }
+                if(in == 0) tmp.src_maskoff = 0xffffffff;
+                break;
+            }
+            // source port
+            case 1:
+                tmp.src_port = (uint)simple_strtol(pch, NULL, 10);
+                break;
+
+            // destination ip/maskoff
+            case 2:
+            {
+                int in = 1;
+                while((piece = strsep(&pch, ":"))){
+                    if(in == 1){
+                        tmp.dst_ip = convert_ip(piece);
+                    }else{
+                        tmp.dst_maskoff = 0xffffffff << (simple_strtol(piece, NULL, 10));
+                    }
+                    in--;
+                }
+                if(in == 0) tmp.dst_maskoff = 0xffffffff;
+                break;
+            }
+            case 3:
+                tmp.dst_port = (uint)simple_strtol(pch, NULL, 10);
+                break;
+
+            // protocol
+            case 4:
+                if(pch[0]=='a' || pch[0] == 'A')
+					tmp.protocol = -1; 
+				else if(pch[0]=='t' || pch[0] == 'T')
+					tmp.protocol = 0x06; //tcp 
+				else if(pch[0]=='u' || pch[0] == 'U')
+					tmp.protocol = 0x11; //udp
+				else if(pch[0]=='i' || pch[0] == 'I')
+					tmp.protocol = 0x01; //icmp
+				else
+					return -1;
+				break;
+
+            // action
+            case 5:
+                if(pch[0] == 'a' || pch[0] == 'A'){
+                    tmp.action = 1;
+                }else if(pch[0] == 'd' || pch[0] == 'D'){
+                    tmp.action = 2;
+                }
+            // log
+            // TODO logo 
+        }
+    }
+
+    rule_toString(output, tmp);
+    printk("[rule added]:%s",output);
+    return 1;
+}
 int handle_rule_config(char* input){
     //int size = strlen(input);
-    printk("[handle_rule_config]:%s\n", input);
-    send_to_user("hello, i received your msg.\n")
+    char *pch;
+    printk("[handle_rule_config]:%s", input);
+    while ((pch = strsep(&input, "#")))
+    {
+        generate_one_rule(pch);
+    }
+    // TODO: generate rule table
+    send_to_user("Hello, I received your msg.");
     return 0;
 }
 

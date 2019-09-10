@@ -23,7 +23,9 @@ struct u_packet_info
 int main(int argc, char* argv[])
 {
 
-    char data[100] = "message from user";
+    char data[] = "#sip/smaskoff sport dip/dmaskoff dport protocol action"
+                  "#192.168.57.0/24 20 192.168.52.0/26 40 tcp deny"
+                  "#192.168.57.0/24 20 192.168.52.0/26 40 tcp deny";
 //./proxy insert 0 192 168 200 153 32 -1 60 170 49 75 32 -1 tcp yes permit
 //./proxy insert 1 183 78 181 60 32 -1 192 168 200 150 32 -1 tcp yes permit
 //insert 0 192 168 200 150 32 -1 192 168 200 2 32 -1 tcp yes permit
@@ -85,13 +87,12 @@ int main(int argc, char* argv[])
     }
     //接受内核态确认信息
     ret = recvfrom(skfd, &info, sizeof(struct u_packet_info),0, (struct sockaddr*)&daddr, &daddrlen);
-    printf("2\n");
     if(!ret){
         perror("recv from kerner:");
         exit(-1);
     }
     
-    printf("message received from kernel:\n%s\n\n",((char *)info.msg));
+    printf("message received from kernel:[%s]\n\n",((char *)info.msg));
     //内核和用户进行通信
 
     

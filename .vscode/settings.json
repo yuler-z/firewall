@@ -16,6 +16,9 @@
         "version.h": "c",
         "ip.h": "c",
         "tcp.h": "c",
-        "inet.h": "c"
+        "inet.h": "c",
+        "udp.h": "c",
+        "icmp.h": "c",
+        "list.h": "c"
     }
 }
