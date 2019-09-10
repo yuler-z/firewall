@@ -198,7 +198,7 @@ ulong convert_ip(char* ip){
         int i;
         num = simple_strtoul(token, NULL, 10);
         for(i = 0; i < index; i++){
-           num *= 255;
+           num *= 256;
         }
         total += num;
         index--;
@@ -360,6 +360,7 @@ int generate_one_rule(char* input){
             // TODO logo 
         }
         num++;
+        index++;
     }
 
     rule_toString(output, tmp);
