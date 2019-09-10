@@ -80,17 +80,16 @@ LIST_HEAD(rule_table); // init rule linkedlist
 uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 int add_hashtable(void);
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
-char* keyword_toString(char* output, const struct keyword *pkw);
+char* keyword_toString(char* output, const struct keyword *kw);
 char* rule_toString(char* output, const struct rule *pr);
-int compare_rule(const struct rule r, const struct keyword kw);
-int compare_rule(const struct rule r, const struct keyword kw);
-ulong hash_function(const struct keyword kw);
-int check_state_table(struct keyword kw);
-int check_rule_table(const struct keyword kw);
+ulong hash_function(const struct keyword *kw);
+int check_state_table(struct keyword *kw);
+int check_rule_table(const struct keyword *kw);
 int handle_rule_config(char* input);
 int send_to_user(char* data);
 void rcv_from_user(struct sk_buff *_skb);
-int compare_keywords(const struct keyword k1, const struct keyword k2);
+int compare_keywords(const struct keyword *k1, const struct keyword *k2);
+int compare_rule(const struct rule *r, const struct keyword *kw);
 
 
 int add_hashtable(void){
@@ -120,7 +119,7 @@ uint hook_input_func(void *priv,
     }
 */
 
-    rule_action = check_rule_table(kw);
+    rule_action = check_rule_table(&kw);
     if(rule_action == ALLOW){
         return NF_ACCEPT;
     }else if(rule_action == DENY){
@@ -200,7 +199,7 @@ int compare_keywords(const struct keyword *k1, const struct keyword *k2){
         (k1->dst_port == k2->src_port) && \
         (k1->protocol == k2->protocol);
 }
-int compare_rule(const struct rule r, const struct keyword *kw){
+int compare_rule(const struct rule *r, const struct keyword *kw){
     
     return \
         ((r->src_ip & r->src_maskoff) == (kw->src_ip & r->src_maskoff)) && \
@@ -214,7 +213,7 @@ int check_state_table(struct keyword *kw){
     struct state_node *p;
     hash_for_each_possible(state_table, p, list, hash) {
         if(p->hash == hash) {
-            if(compare_keywords(&p->kw, &kw)){
+            if(compare_keywords(&p->kw, kw)){
                 return p->action;
             }
         }
@@ -222,10 +221,10 @@ int check_state_table(struct keyword *kw){
     return 0; //not find in state table
 }
 
-int check_rule_table(const struct keyword kw){
+int check_rule_table(const struct keyword *kw){
     struct rule_node *p;
     list_for_each_entry(p, &rule_table, list){
-        if(compare_rule(&p->rule, &kw)){
+        if(compare_rule(&p->rule, kw)){
             return p->rule.action;
         }
     }
@@ -250,15 +249,15 @@ uint convert_ip(char* ip){
     }
     return total;
 }
-char* keyword_toString(char* output, const struct keyword *pkw){
+char* keyword_toString(char* output, const struct keyword *kw){
     int src_ip_arr[4];
     uint src_port;
     int dst_ip_arr[4];
     uint dst_port;
     char* protocol = "error";
 
-    uint src_ip = pkw->src_ip;
-    uint dst_ip = pkw->dst_ip;
+    uint src_ip = kw->src_ip;
+    uint dst_ip = kw->dst_ip;
 
     // src_ip
     src_ip_arr[3] = src_ip % 256;
@@ -338,20 +337,20 @@ char* rule_toString(char* output, const struct rule *pr){
     }
 
     // dst_ip
-    dst_ip_arr[3] = pr->dst_ip_arr % 256;
-    pr->dst_ip_arr /= 256;
-    dst_ip_arr[2] = pr->dst_ip_arr % 256;
-    pr->dst_ip_arr /= 256;
-    dst_ip_arr[1] = pr->dst_ip_arr % 256;
-    pr->dst_ip_arr /= 256;
-    dst_ip_arr[0] = pr->dst_ip_arr % 256;
+    dst_ip_arr[3] = dst_ip % 256;
+    dst_ip /= 256;
+    dst_ip_arr[2] = dst_ip % 256;
+    dst_ip /= 256;
+    dst_ip_arr[1] = dst_ip % 256;
+    dst_ip /= 256;
+    dst_ip_arr[0] = dst_ip % 256;
 
     //dst_port
     dst_port = pr->dst_port;
     maskoff = pr->src_maskoff;
     while(maskoff){
         dst_maskoff_num++;
-        dst_maskoff = dst_maskoff << 1;
+        maskoff = maskoff << 1;
     }
 
     //protocol
