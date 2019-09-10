@@ -174,6 +174,9 @@ int extract_keyword(struct keyword *kw, const struct sk_buff *skb){
         default:
             return 0;
     }
+    char output[200];
+    keyword_toString(output, *kw);
+    printk("[extract_keyword:%s]",output);
     return 1;
 }
 
@@ -182,11 +185,22 @@ ulong hash_function(const struct keyword kw){
     return hash;
 }
 int compare_keywords(const struct keyword k1, const struct keyword k2){
-    return (k1.src_ip == k2.src_ip) && (k1.dst_ip == k2.dst_ip) && (k1.protocol == k2.protocol) \
-            && (k1.src_port == k2.src_port) && (k1.dst_port == k2.src_port);
+
+    return \ 
+        (k1.src_ip == k2.src_ip) && \
+        (k1.src_port == k2.src_port) && \
+        (k1.dst_ip == k2.dst_ip) && \
+        (k1.dst_port == k2.src_port) && \
+        (k1.protocol == k2.protocol);
 }
 int compare_rule(const struct rule r, const struct keyword kw){
     
+    return \
+        ((r.src_ip & r.src_maskoff) == (kw.src_ip & r.src_maskoff)) && \
+        (r.src_port == kw.src_port) && \
+        ((r.dst_ip & r.dst_maskoff) == (kw.dst_ip & r.dst_maskoff)) && \
+        (r.dst_port == kw.dst_port) && \
+        (r.protocol == kw.protocol);
 }
 int check_state_table(struct keyword kw){
     ulong hash = hash_function(kw);
@@ -228,6 +242,58 @@ uint convert_ip(char* ip){
         index--;
     }
     return total;
+}
+char* keyword_toString(char* output, struct keyword kw){
+    int src_ip[4];
+    uint src_port;
+    int dst_ip[4];
+    uint dst_port;
+    char* protocol = "error";
+
+    // src_ip
+    src_ip[3] = r.src_ip % 256;
+    r.src_ip /= 256;
+    src_ip[2] = r.src_ip % 256;
+    r.src_ip /= 256;
+    src_ip[1] = r.src_ip % 256;
+    r.src_ip /= 256;
+    src_ip[0] = r.src_ip % 256;
+
+    //src_port
+    src_port = r.src_port;
+
+    // dst_ip
+    dst_ip[3] = r.dst_ip % 256;
+    r.dst_ip /= 256;
+    dst_ip[2] = r.dst_ip % 256;
+    r.dst_ip /= 256;
+    dst_ip[1] = r.dst_ip % 256;
+    r.dst_ip /= 256;
+    dst_ip[0] = r.dst_ip % 256;
+
+    //dst_port
+    dst_port = r.dst_port;
+
+    //protocol
+    switch(r.protocol){
+        case 0x01:
+            protocol = "icmp";
+            break;
+        case 0x06:
+            protocol = "tcp";
+            break;
+        case 0x11:
+            protocol = "udp";
+            break;
+        case -1:
+            protocol = "all";
+            break;
+    }
+
+    snprintf(output, 200, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s ",src_ip[0], src_ip[1], src_ip[2], src_ip[3], src_port,\
+                                                                dst_ip[0], dst_ip[1], dst_ip[2], dst_ip[3],  dst_port,\
+                                                                protocol);
+    return output;     
 }
 
 char* rule_toString(char* output, struct rule r){
@@ -307,7 +373,7 @@ int generate_one_rule(char* input){
     int num = 1;
     char *pch;
     char *piece;
-    char output[200];
+
     struct rule_node node;
     struct rule tmp;
     while((pch  = strsep(&input, " "))){
@@ -391,8 +457,10 @@ int generate_one_rule(char* input){
     node.rule = tmp;
     list_add_tail(&node.next, &rule_table);
 
+    char output[200];
     rule_toString(output, tmp);
     printk("[rule added]:%s",output);
+
     return 1;
 }
 int handle_rule_config(char* input){
