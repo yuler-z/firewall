@@ -478,6 +478,8 @@ void exit_mod(void)
 {
 	printk("test module exit ...\n");
 	nf_unregister_net_hook(&init_net, &input_hook); //取消钩子注册
+	nf_unregister_net_hook(&init_net, &output_hook); //取消钩子注册
+
 
     sock_release(nlfd->sk_socket);
 }
