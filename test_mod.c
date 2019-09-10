@@ -286,7 +286,7 @@ int generate_one_rule(char* input){
     char output[200];
     struct rule tmp;
     while((pch  = strsep(&input, " "))){
-        printk("[generate_one_rule no.%d]:", num, pch);
+        printk("[generate_one_rule no.%d]:%s", num, pch);
         switch(index){
             // source ip/maskoff
             case 0:

@@ -19,6 +19,7 @@
         "inet.h": "c",
         "udp.h": "c",
         "icmp.h": "c",
-        "list.h": "c"
+        "list.h": "c",
+        "string.h": "c"
     }
 }
