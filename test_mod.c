@@ -76,30 +76,44 @@ LIST_HEAD(rule_table); // init rule linkedlist
 
 
 /*----declaration of function----*/
+// hook function
 uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
-int add_hashtable(const struct keyword *kw, uint action);
-int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
-char* keyword_toString(char* output, const struct keyword *kw);
-char* rule_toString(char* output, const struct rule *pr);
-uint hash_function(const struct keyword *kw);
+uint hook_output_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
+
+// state_table 
 int check_state_table(struct keyword *kw);
+char* keyword_to_string(char* output, const struct keyword *kw);
+uint hash_function(const struct keyword *kw);
+int keyword_compare(const struct keyword *k1, const struct keyword *k2);
+int add_state_node(const struct keyword *kw, uint action);
+
+
+// rule table 
 int check_rule_table(const struct keyword *kw);
+int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
+char* rule_to_string(char* output, const struct rule *pr);
+int rule_compare(const struct rule *r, const struct keyword *kw);
+int add_rule_node(char* input);
 int handle_rule_config(char* input);
+
+// communication between user space and kernel space
 int send_to_user(char* data);
 void rcv_from_user(struct sk_buff *_skb);
-int compare_keywords(const struct keyword *k1, const struct keyword *k2);
-int compare_rule(const struct rule *r, const struct keyword *kw);
+
+//
+uint convert_ip(char* ip);
 
 
-int add_hashtable(const struct keyword *kw, uint action){
+
+int add_state_node(const struct keyword *kw, uint action){
     char output[200];
-    keyword_toString(output, kw);
+    keyword_to_string(output, kw);
     struct state_node* state = (struct state_node *)kmalloc(sizeof(struct state_node), GFP_KERNEL);
     state->kw = *kw;
     state->hash = hash_function(kw);
     state->action = action;
     hash_add(state_table, &state->list, state->hash);
-    printk("[add_hashtable]:add %s", output);
+    printk("[add_state_node]:add %s", output);
     return 1;
 }
 
@@ -118,11 +132,11 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     // 1. check state table
     state_action = check_state_table(&kw);
     if(state_action == ALLOW){
-        keyword_toString(output, &kw);
+        keyword_to_string(output, &kw);
         printk("[Hash Accept packet:%s]",output);
         return NF_ACCEPT;
     }else if(state_action == DENY){
-        keyword_toString(output, &kw);
+        keyword_to_string(output, &kw);
         printk("[Hash Drop packet:%s]",output);
         return NF_DROP;
     }
@@ -130,19 +144,19 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     // 2. cheack rule table
     rule_action = check_rule_table(&kw);
     if(rule_action == 0){
-        // keyword_toString(output, &kw);
+        // keyword_to_string(output, &kw);
         // printk("[Default packet:%s]",output);
         return DEFAULT_ACTION;
     }
 
-    add_hashtable(&kw, rule_action);
+    add_state_node(&kw, rule_action);
 
     if(rule_action == ALLOW){
-        keyword_toString(output, &kw);
+        keyword_to_string(output, &kw);
         printk("[List Accept packet:%s]",output);
         return NF_ACCEPT;
     }else if(rule_action == DENY){
-        keyword_toString(output, &kw);
+        keyword_to_string(output, &kw);
         printk("[List Drop packet:%s]",output);
         return NF_DROP;
     }
@@ -198,7 +212,7 @@ int extract_keyword(struct keyword *kw, const struct sk_buff *skb){
             return 0;
     }
     //char output[200];
-    //keyword_toString(output, kw);
+    //keyword_to_string(output, kw);
     // printk("[extract_keyword:%s]",output);
     return 1;
 }
@@ -211,7 +225,7 @@ uint hash_function(const struct keyword *kw){
 	hash = hash + kw->src_port + kw->dst_port;
     return hash;
 }
-int compare_keywords(const struct keyword *k1, const struct keyword *k2){
+int keyword_compare(const struct keyword *k1, const struct keyword *k2){
 
     return \ 
         (k1->src_ip == k2->src_ip) && \
@@ -220,7 +234,7 @@ int compare_keywords(const struct keyword *k1, const struct keyword *k2){
         (k1->dst_port == k2->src_port) && \
         (k1->protocol == k2->protocol);
 }
-int compare_rule(const struct rule *r, const struct keyword *kw){
+int rule_compare(const struct rule *r, const struct keyword *kw){
     
     return \
         ((r->src_ip & r->src_maskoff) == (kw->src_ip & r->src_maskoff)) && \
@@ -234,7 +248,7 @@ int check_state_table(struct keyword *kw){
     struct state_node *p;
     hash_for_each_possible(state_table, p, list, hash) {
         if(p->hash == hash) {
-            if(compare_keywords(&p->kw, kw)){
+            if(keyword_compare(&p->kw, kw)){
                 return p->action;
             }
         }
@@ -245,7 +259,7 @@ int check_state_table(struct keyword *kw){
 int check_rule_table(const struct keyword *kw){
     struct rule_node *p;
     list_for_each_entry(p, &rule_table, list){
-        if(compare_rule(&p->rule, kw)){
+        if(rule_compare(&p->rule, kw)){
             return (p->rule).action;
         }
     }
@@ -270,7 +284,7 @@ uint convert_ip(char* ip){
     }
     return total;
 }
-char* keyword_toString(char* output, const struct keyword *kw){
+char* keyword_to_string(char* output, const struct keyword *kw){
     int src_ip_arr[4];
     uint src_port;
     int dst_ip_arr[4];
@@ -326,7 +340,7 @@ char* keyword_toString(char* output, const struct keyword *kw){
     return output;     
 }
 
-char* rule_toString(char* output, const struct rule *pr){
+char* rule_to_string(char* output, const struct rule *pr){
     int src_ip_arr[4];
     uint src_port;
     int src_maskoff_num = 0;
@@ -420,7 +434,7 @@ char* rule_toString(char* output, const struct rule *pr){
     return output; 
 }
 
-int generate_one_rule(char* input){
+int add_rule_node(char* input){
     // example: 192.168.57.0/24:20 192.168.52.0/26:40 tcp deny
     int index = 0; // index: 0~3
     int num = 1;
@@ -430,7 +444,7 @@ int generate_one_rule(char* input){
     struct rule_node *node = (struct rule_node *)kmalloc(sizeof(struct rule_node *), GFP_KERNEL);
     struct rule tmp;
     while((pch  = strsep(&input, " "))){
-        // printk("[generate_one_rule no.%d]:%s", num, pch);
+        // printk("[add_rule_node no.%d]:%s", num, pch);
         switch(index){
             // source ip/maskoff
             case 0:
@@ -515,7 +529,7 @@ int generate_one_rule(char* input){
     list_add_tail(&node->list, &rule_table);
 
     char output[200];
-    rule_toString(output, &tmp);
+    rule_to_string(output, &tmp);
     printk("[rule added]:%s",output);
 
     return 1;
@@ -529,14 +543,14 @@ int handle_rule_config(char* input){
     {  
         if(strcmp(pch, "") == 0)  continue;
         printk("[handle_rule_config no.%d]:%s", num, pch);
-        generate_one_rule(pch);
+        add_rule_node(pch);
         num++;
     }
     // debug: print rule table
     struct rule_node *p;
     char output[200];
     list_for_each_entry(p, &rule_table, list){
-        rule_toString(output, &p->rule);
+        rule_to_string(output, &p->rule);
         printk("[rule table foreach]:%s", output);
     }
 
@@ -640,6 +654,17 @@ void exit_mod(void)
 
 
     sock_release(nlfd->sk_socket);
+
+    // free rule_table
+    struct rule_node *p;
+    struct rule_node *tmp;
+    list_for_each_entry_safe(p, tmp, &rule_table, list){
+        list_del(&p->list);
+        kfree(p);
+    }
+
+    // free state_table
+    hash_for_each_safe(state_table, t,)
 }
 
 
