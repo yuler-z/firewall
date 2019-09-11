@@ -627,17 +627,17 @@ int handle_rule_config(char* input){
     while ((pch = strsep(&input, "#")))
     {  
         if(strcmp(pch, "") == 0)  continue;
-        printk("[handle_rule_config no.%d]:%s", num, pch);
+        // printk("[handle_rule_config no.%d]:%s", num, pch);
         add_rule_node(pch);
         num++;
     }
     // debug: print rule table
     struct rule_node *p;
     char output[200];
-    list_for_each_entry(p, &rule_table, list){
-        rule_to_string(output, &p->rule);
-        printk("[rule table foreach]:%s", output);
-    }
+    // list_for_each_entry(p, &rule_table, list){
+    //     rule_to_string(output, &p->rule);
+    //     printk("[rule table foreach]:%s", output);
+    // }
     debug_send_to_user("Get it");
     //send_to_user("Get it.", TAG_MSG);
     return 0;
