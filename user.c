@@ -22,12 +22,15 @@ struct u_packet_info
 
 int main(int argc, char* argv[])
 {
-
-    //"#sip/smaskoff sport dip/dmaskoff dport protocol action"
+    // usage:
+    //      "sip/smaskoff sport dip/dmaskoff dport protocol action log#"
+    //      "A.B.C.D/x [0->65535] A.B.C.D/x [0->65535] [tcp/udp/icmp] [allow/deny] [yes/no]#"
+    // example:
+    //      "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow yes#"
     char data[] = 
                 //    "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow#" // test in internal network 
                 //   "222.10.23.0/24 48 222.10.52.0/24 58 tcp deny#"
-                    "202.114.0.245 0 192.168.57.0/24 0 icmp deny";
+                    "202.114.0.245 0 192.168.57.0/24 0 icmp deny yes";
                 //   "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny#"; //ping www.baidu.com
 
     //初始化

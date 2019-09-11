@@ -27,12 +27,19 @@ MODULE_AUTHOR("U201614817");
 #define DEFAULT_ACTION NF_ACCEPT
 
 // action macro
-#define NOT_FIND 0
 #define ALLOW 1
-#define DENY 2
+#define DENY -1
+
+#define Yes 1
+#define No -1
+
+struct option{
+    int action; //            1 = allow, -1 = deny 
+    int log; //               1 = yes, -1 = no
+};
 
 
-/****Keyword Hashtable****/
+/*----Keyword Hashtable----*/
 struct keyword {
 	uint src_ip;
 	uint dst_ip;
@@ -44,7 +51,7 @@ struct keyword {
 struct state_node {
     struct keyword kw;
     uint hash;
-    int action; // 0 = not find, 1 = allow, 2 = deny
+    struct option op;
     struct hlist_node list;
 };
 
@@ -56,9 +63,7 @@ struct rule {
 	uint dst_ip; 
 	uint dst_maskoff;
 	uint dst_port;
-	int protocol; 
-    int action; // 0 = not find, 1 = allow, 2 = deny 
-	int log; 
+    struct option op; // {action, log}
 };
 
 struct rule_node {
@@ -81,17 +86,17 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
 uint hook_output_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 
 // state_table 
-int check_state_table(struct keyword *kw);
+struct option check_state_table(struct keyword *kw);
 char* keyword_to_string(char* output, const struct keyword *kw);
 uint hash_function(const struct keyword *kw);
 int keyword_compare(const struct keyword *k1, const struct keyword *k2);
-int add_state_node(const struct keyword *kw, uint action);
+int add_state_node(const struct keyword *kw, const struct *option);
 
 
 // rule table 
-int check_rule_table(const struct keyword *kw);
+struct option check_rule_table(const struct keyword *kw);
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
-char* rule_to_string(char* output, const struct rule *pr);
+char* rule_to_string(char* output, const struct rule *r);
 int rule_compare(const struct rule *r, const struct keyword *kw);
 int add_rule_node(char* input);
 int handle_rule_config(char* input);
@@ -103,15 +108,19 @@ void rcv_from_user(struct sk_buff *_skb);
 //
 uint convert_ip(char* ip);
 
+void send_log_to_user(const struct *keyword, const struct *option){
+    char output[200];
+    keyword_to_string(output, keyword);
+    send_to_user()
+}
 
-
-int add_state_node(const struct keyword *kw, uint action){
+int add_state_node(const struct keyword *kw, const struct *option){
     char output[200];
     keyword_to_string(output, kw);
     struct state_node* state = (struct state_node *)kmalloc(sizeof(struct state_node), GFP_KERNEL);
     state->kw = *kw;
     state->hash = hash_function(kw);
-    state->action = action;
+    state->option = *option;
     hash_add(state_table, &state->list, state->hash);
     printk("[add_state_node]:add %s", output);
     return 1;
@@ -124,38 +133,43 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
 
     // 先提取keywords
     struct keyword kw;
-    int state_action, rule_action;
+    struct option *state_option, *rule_option;
     char output[200];
 
     extract_keyword(&kw, skb);
 
     // 1. check state table
-    state_action = check_state_table(&kw);
-    if(state_action == ALLOW){
-        keyword_to_string(output, &kw);
-        printk("[Hash Accept packet:%s]",output);
-        return NF_ACCEPT;
-    }else if(state_action == DENY){
-        keyword_to_string(output, &kw);
-        printk("[Hash Drop packet:%s]",output);
-        return NF_DROP;
+    state_option = check_state_table(&kw);
+    if(state_option != NULL){
+        // log option
+        if(state_option->log == YES){
+            send_log_to_user(&kw, state_option);
+        }
+        if(state_option->action == ALLOW){
+            keyword_to_string(output, &kw);
+            printk("[Hash Accept packet:%s]",output);
+            return NF_ACCEPT;
+        }else if(state_option->action == DENY){
+            keyword_to_string(output, &kw);
+            printk("[Hash Drop packet:%s]",output);
+            return NF_DROP;
+        }
     }
 
+
     // 2. cheack rule table
-    rule_action = check_rule_table(&kw);
-    if(rule_action == 0){
-        // keyword_to_string(output, &kw);
-        // printk("[Default packet:%s]",output);
+    rule_option = check_rule_table(&kw);
+    if(rule_option == NULL){
         return DEFAULT_ACTION;
     }
 
-    add_state_node(&kw, rule_action);
+    add_state_node(&kw, &rule_option);
 
-    if(rule_action == ALLOW){
+    if(rule_option->action == ALLOW){
         keyword_to_string(output, &kw);
         printk("[List Accept packet:%s]",output);
         return NF_ACCEPT;
-    }else if(rule_action == DENY){
+    }else if(rule_option->action == DENY){
         keyword_to_string(output, &kw);
         printk("[List Drop packet:%s]",output);
         return NF_DROP;
@@ -243,27 +257,27 @@ int rule_compare(const struct rule *r, const struct keyword *kw){
         (r->dst_port == kw->dst_port) && \
         (r->protocol == kw->protocol);
 }
-int check_state_table(struct keyword *kw){
+struct option* check_state_table(struct keyword *kw){
     uint hash = hash_function(kw);
     struct state_node *p;
     hash_for_each_possible(state_table, p, list, hash) {
         if(p->hash == hash) {
             if(keyword_compare(&p->kw, kw)){
-                return p->action;
+                return &(p->option);
             }
         }
     }
-    return 0; //not find in state table
+    return NULL; //not find in state table
 }
 
-int check_rule_table(const struct keyword *kw){
+struct option* check_rule_table(const struct keyword *kw){
     struct rule_node *p;
     list_for_each_entry(p, &rule_table, list){
         if(rule_compare(&p->rule, kw)){
-            return (p->rule).action;
+            return &((p->rule).option);
         }
     }
-    return 0; // not find in rule table
+    return NULL; // not find in rule table
 }
 
 // 
@@ -340,7 +354,7 @@ char* keyword_to_string(char* output, const struct keyword *kw){
     return output;     
 }
 
-char* rule_to_string(char* output, const struct rule *pr){
+char* rule_to_string(char* output, const struct rule *r){
     int src_ip_arr[4];
     uint src_port;
     int src_maskoff_num = 0;
@@ -349,9 +363,10 @@ char* rule_to_string(char* output, const struct rule *pr){
     int  dst_maskoff_num = 0;
     char* protocol = "error";
     char* action = "error";
+    char* log = "error";
 
-    uint src_ip = pr->src_ip;
-    uint dst_ip = pr->dst_ip;
+    uint src_ip = r->src_ip;
+    uint dst_ip = r->dst_ip;
     uint maskoff;
 
     // src_ip
@@ -364,8 +379,8 @@ char* rule_to_string(char* output, const struct rule *pr){
     src_ip_arr[0] = src_ip % 256;
 
     //src_port
-    src_port = pr->src_port;
-    maskoff = pr->src_maskoff;
+    src_port = r->src_port;
+    maskoff = r->src_maskoff;
     while(maskoff){
         src_maskoff_num++;
         maskoff = maskoff << 1;
@@ -381,15 +396,15 @@ char* rule_to_string(char* output, const struct rule *pr){
     dst_ip_arr[0] = dst_ip % 256;
 
     //dst_port
-    dst_port = pr->dst_port;
-    maskoff = pr->dst_maskoff;
+    dst_port = r->dst_port;
+    maskoff = r->dst_maskoff;
     while(maskoff){
         dst_maskoff_num++;
         maskoff = maskoff << 1;
     }
 
     //protocol
-    switch(pr->protocol){
+    switch(r->protocol){
         case 0x01:
             protocol = "icmp";
             break;
@@ -405,30 +420,37 @@ char* rule_to_string(char* output, const struct rule *pr){
     }
 
     //action
-    if(pr->action == 1){
+    if(r->action == 1){
         action = "allow";
     }else{
         action = "deny";
     }
+
+    // log
+    if(r->action = 1){
+        action = "yes";
+    }else{
+        action = "no";
+    }
     if(src_maskoff_num == 32 && dst_maskoff_num == 32){
-        snprintf(output, 200, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
+        snprintf(output, 200, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
                                                      dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3],dst_port,\
-                                                     protocol, action);
+                                                     protocol, action, log);
 
     }else if(src_maskoff_num == 32){
-        snprintf(output, 200, "%d.%d.%d.%d %u %d.%d.%d.%d/%d %u %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
+        snprintf(output, 200, "%d.%d.%d.%d %u %d.%d.%d.%d/%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
                                                      dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_maskoff_num, dst_port,\
-                                                     protocol, action);
+                                                     protocol, action, log);
 
     }else if(dst_maskoff_num == 32){
-        snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d %u %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
+        snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
                                                                 dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_port,\
-                                                                protocol, action);
+                                                                protocol, action, log);
 
     }else{
-        snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
+        snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
                                                      dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_maskoff_num, dst_port,\
-                                                     protocol, action);
+                                                     protocol, action, log);
 
     }
     return output; 
@@ -513,13 +535,18 @@ int add_rule_node(char* input){
             // action
             case 5:
                 if(pch[0] == 'a' || pch[0] == 'A'){
-                    tmp.action = 1;
-                }else if(pch[0] == 'd' || pch[0] == 'D'){
-                    tmp.action = 2;
+                    tmp.option.action = ALLOW;
+                }else/* if(pch[0] == 'd' || pch[0] == 'D')*/{
+                    tmp.option.action = DENY;
                 }
                 // printk("[action:%d]", tmp.action);
             // log
-            // TODO logo 
+            case 6:
+                if(pch[0] == 'y' || pch[0] == 'Y'){
+                    tmp.option.log = YES;
+                }else/* if(pch[0] == 'n' || pch[0] == 'N')*/{
+                    tmp.option.log = NO;
+                }
         }
         num++;
         index++;
@@ -583,16 +610,18 @@ int send_to_user(char* data){
 	    printk("my_net_link:alloc_skb_1 error\n");
 	}
 
-    nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(strlen(input))-sizeof(struct nlmsghdr) /*size of payload*/, 0);  //put msg into skb
+    //
+    nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(strlen(input))-sizeof(struct nlmsghdr) /*size of payload*/, 0);  //init nlmsg header
 
-    memcpy(NLMSG_DATA(nlh), input, strlen(input));
+    memcpy(NLMSG_DATA(nlh), input, strlen(input));//put msg into skb
 
     NETLINK_CB(skb).portid = 0;
     NETLINK_CB(skb).dst_group = 0;
 
     //printk(KERN_DEBUG "[kernel space] skb->data:%s\n", (char *)NLMSG_DATA((struct nlmsghdr *)skb->data));
     retval = netlink_unicast(nlfd, skb, user_pid, MSG_DONTWAIT);
-    printk(KERN_DEBUG "[kernel space] netlink_unicast return: %d\n", retval);
+    kfree(skb);
+    // printk(KERN_DEBUG "[kernel space] netlink_unicast return: %d\n", retval);
     return 0;  
 }
 void rcv_from_user(struct sk_buff *__skb)
@@ -656,15 +685,20 @@ void exit_mod(void)
     sock_release(nlfd->sk_socket);
 
     // free rule_table
-    struct rule_node *p;
-    struct rule_node *tmp;
-    list_for_each_entry_safe(p, tmp, &rule_table, list){
-        list_del(&p->list);
-        kfree(p);
+    struct rule_node *r, *tmp;
+    list_for_each_entry_safe(r, tmp, &rule_table, list){
+        list_del(&r->list);
+        kfree(r);
     }
 
     // free state_table
-    hash_for_each_safe(state_table, t,)
+    struct state_node *s;
+    struct hlist_node *t;
+    int bkt;
+    hash_for_each_safe(state_table, bkt, t, s, list){
+        hash_del(&s->list);
+        kfree(s);
+    }
 }
 
 
