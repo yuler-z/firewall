@@ -82,7 +82,7 @@ struct rule_node {
 };
 
 /*----global variable----*/
-int user_pid; //user process id
+int user_pid = 0; //user process id
 static struct nf_hook_ops input_hook; //input hook
 static struct nf_hook_ops output_hook; // output hook
 static struct sock *nlfd = NULL; //netlink file description
@@ -708,7 +708,7 @@ void exit_mod(void)
 	nf_unregister_net_hook(&init_net, &input_hook); //取消钩子注册
 	nf_unregister_net_hook(&init_net, &output_hook); //取消钩子注册
     
-    send_to_user("", TAG_END);
+    if(user_pid != 0) send_to_user("", TAG_END);
 
     sock_release(nlfd->sk_socket);
 
