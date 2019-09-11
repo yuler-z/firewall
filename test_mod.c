@@ -116,6 +116,44 @@ void rcv_from_user(struct sk_buff *_skb);
 
 //
 uint convert_ip(char* ip);
+// --------------------------------------------debug-----------------------------------//
+int debug_send_to_user(char* data){
+    //1)declare a struct sk_buff*  
+    //2)declare a struct nlmsghdr *  
+    //3)call alloc_skb() to alloc the struct skb_buff   
+    //4)appenxid the struct nlmsg to the tail of the struct skb_buff  
+    //5)get the nlmsghdt ponit to the field of the struct skb_buff  
+    //6)init the fiels of the nlmsg  
+    //7)insrt the meg into the mlmsg  
+    //8)call the netlink_unicast() to transmit the struct skb_buff 
+  	int size;
+	int retval;
+    char input[1000];
+    struct sk_buff *skb;
+    struct nlmsghdr *nlh;
+    
+    memset(input, '\0', 1000*sizeof(char));
+    memcpy(input, data, strlen(data));
+    
+    size = NLMSG_SPACE(strlen(input));
+    skb = alloc_skb(size, GFP_ATOMIC);
+    if(!skb)
+	{
+	    printk("my_net_link:alloc_skb_1 error\n");
+	}
+
+    nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(strlen(input))-sizeof(struct nlmsghdr) /*size of payload*/, 0);  //put msg into skb
+
+    memcpy(NLMSG_DATA(nlh), input, strlen(input));
+
+    NETLINK_CB(skb).portid = 0;
+    NETLINK_CB(skb).dst_group = 0;
+
+    //printk(KERN_DEBUG "[kernel space] skb->data:%s\n", (char *)NLMSG_DATA((struct nlmsghdr *)skb->data));
+    retval = netlink_unicast(nlfd, skb, user_pid, MSG_DONTWAIT);
+    printk(KERN_DEBUG "[kernel space] netlink_unicast return: %d\n", retval);
+    return 0;  
+}
 /*-----function------*/
 int send_log_to_user(const struct keyword *kw, const struct option *op){
     char output[200];
@@ -600,8 +638,8 @@ int handle_rule_config(char* input){
         rule_to_string(output, &p->rule);
         printk("[rule table foreach]:%s", output);
     }
-
-    send_to_user("Get it.", TAG_MSG);
+    debug_send_to_user("Get it");
+    //send_to_user("Get it.", TAG_MSG);
     return 0;
 }
 
@@ -708,7 +746,7 @@ void exit_mod(void)
 	nf_unregister_net_hook(&init_net, &input_hook); //取消钩子注册
 	nf_unregister_net_hook(&init_net, &output_hook); //取消钩子注册
     
-    if(user_pid != 0) send_to_user("", TAG_END);
+    // if(user_pid != 0) send_to_user("", TAG_END);
 
     sock_release(nlfd->sk_socket);
 

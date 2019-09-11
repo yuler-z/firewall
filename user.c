@@ -11,16 +11,21 @@
 #define TAG_END 0
 #define TAG_MSG 1
 
-struct message{
-    int tag; // 0 = end, 1 = msg, 
-    int length;
-    char data[DATA_LEN];
-};
+// struct message{
+//     int tag; // 0 = end, 1 = msg, 
+//     int length;
+//     char data[DATA_LEN];
+// };
 
+// struct packet_info
+// {
+//     struct nlmsghdr hdr;
+//     struct message msg;
+// };
 struct packet_info
 {
     struct nlmsghdr hdr;
-    struct message msg;
+    char data[DATA_LEN];
 };
 
 int main(int argc, char* argv[])
@@ -81,7 +86,7 @@ int main(int argc, char* argv[])
     
     // printf("message sent to kernel is:\n %s\n\nlen:%d", (char *)NLMSG_DATA(nlh), nlh->nlmsg_len);
     // printf("[%d]\n", /*(char *)NLMSG_DATA(nlh)*/nlh->nlmsg_len);
-    // printf("[%s]:[%d]\n", (char *)NLMSG_DATA(nlh), nlh->nlmsg_len);
+    printf("[%s]:[%d]\n", (char *)NLMSG_DATA(nlh), nlh->nlmsg_len);
     ret = sendto(skfd, nlh, nlh->nlmsg_len, 0,(struct sockaddr *)&daddr, sizeof(daddr));
     if(!ret){
         perror("send pid:");
@@ -89,23 +94,30 @@ int main(int argc, char* argv[])
     }
 
     // rcv log from kernel space
-    while(1){
-        ret = recvfrom(skfd, &info, sizeof(struct packet_info),0, (struct sockaddr*)&daddr, &daddrlen);
-        if(!ret){
-            perror("recv from kerner:");
-            exit(-1);
-        }
-        if((int)info.msg.tag == TAG_END){
-            break;
-        }
-        if(info.msg.length == 0){
-            continue;
-        }else{
-            //TODO: write to file
-            printf("message received from kernel:[%s]\n\n",(char*)info.msg.data);
-        }
+    // while(1){
+    //     ret = recvfrom(skfd, &info, sizeof(struct packet_info),0, (struct sockaddr*)&daddr, &daddrlen);
+    //     if(!ret){
+    //         perror("recv from kerner:");
+    //         exit(-1);
+    //     }
+    //     if((int)info.msg.tag == TAG_END){
+    //         break;
+    //     }
+    //     if(info.msg.length == 0){
+    //         continue;
+    //     }else{
+    //         //TODO: write to file
+    //         printf("message received from kernel:[%s]\n\n",(char*)info.msg.data);
+    //     }
+    // }
+        //接受内核态确认信息
+    ret = recvfrom(skfd, &info, sizeof(struct packet_info),0, (struct sockaddr*)&daddr, &daddrlen);
+    if(!ret){
+        perror("recv from kerner:");
+        exit(-1);
     }
     
+    printf("message received from kernel:[%s]\n\n",((char *)info.data)); 
     close(skfd);
     return 0;
 }
