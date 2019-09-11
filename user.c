@@ -29,13 +29,6 @@ int main(int argc, char* argv[])
                 //   "222.10.23.0/24 48 222.10.52.0/24 58 tcp deny#"
                     "202.114.0.245 0 192.168.57.0/24 0 icmp deny";
                 //   "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny#"; //ping www.baidu.com
-//./proxy insert 0 192 168 200 153 32 -1 60 170 49 75 32 -1 tcp yes permit
-//./proxy insert 1 183 78 181 60 32 -1 192 168 200 150 32 -1 tcp yes permit
-//insert 0 192 168 200 150 32 -1 192 168 200 2 32 -1 tcp yes permit
-//insert 1 192 168 200 150 32 -1 192 168 200 2 32 -1 udp yes permit
-//./proxy insert 0 192 168 200 150 32 -1 183 78 181 60 32 -1 tcp yes snat 11 11 11 11 11
-//./proxy insert 0 192 168 200 150 32 -1 183 78 181 60 32 -1 tcp yes dnat 11 11 11 11 11
-//./proxy mode accept0/reject1
 
     //初始化
     struct sockaddr_nl saddr; // source socket addr

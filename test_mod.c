@@ -19,14 +19,13 @@
 #include <linux/types.h>
 #include <linux/list.h>
 
-// #define uint unsigned int
-// #define ulong unsigned long
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("U201614817");
 
 #define NETLINK_TEST 25 // value > 16
 #define DEFAULT_ACTION NF_ACCEPT
+
 // action macro
 #define NOT_FIND 0
 #define ALLOW 1
