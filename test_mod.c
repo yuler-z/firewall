@@ -209,7 +209,7 @@ uint hash_function(const struct keyword *kw){
     uint hash = 0;
 	hash = kw->src_ip + kw->dst_ip;
 	hash = (hash << seed) + kw->protocol;
-	hash = hash + pkt.port[0] + pkt.port[1];
+	hash = hash + kw->src_port + kw->dst_port;
     return hash;
 }
 int compare_keywords(const struct keyword *k1, const struct keyword *k2){
