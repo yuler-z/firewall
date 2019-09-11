@@ -19,8 +19,8 @@
 #include <linux/types.h>
 #include <linux/list.h>
 
-#define uint unsigned int
-#define ulong unsigned long
+// #define uint unsigned int
+// #define ulong unsigned long
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("U201614817");
@@ -44,7 +44,7 @@ struct keyword {
 
 struct state_node {
     struct keyword kw;
-    ulong hash;
+    uint hash;
     int action; // 0 = not find, 1 = allow, 2 = deny
     struct hlist_node list;
 };
@@ -82,7 +82,7 @@ int add_hashtable(const struct keyword *kw, uint action);
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
 char* keyword_toString(char* output, const struct keyword *kw);
 char* rule_toString(char* output, const struct rule *pr);
-ulong hash_function(const struct keyword *kw);
+uint hash_function(const struct keyword *kw);
 int check_state_table(struct keyword *kw);
 int check_rule_table(const struct keyword *kw);
 int handle_rule_config(char* input);
@@ -93,11 +93,14 @@ int compare_rule(const struct rule *r, const struct keyword *kw);
 
 
 int add_hashtable(const struct keyword *kw, uint action){
+    char output[200];
+    keyword_toString(output, kw);
     struct state_node* state = (struct state_node *)kmalloc(sizeof(struct state_node), GFP_KERNEL);
     state->kw = *kw;
     state->hash = hash_function(kw);
     state->action = action;
     hash_add(state_table, &state->list, state->hash);
+    printk("[add_hashtable]:add %s", output);
     return 1;
 }
 
@@ -116,8 +119,12 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     // 1. check state table
     state_action = check_state_table(&kw);
     if(state_action == ALLOW){
+        keyword_toString(output, &kw);
+        printk("[Hash Accept packet:%s]",output);
         return NF_ACCEPT;
     }else if(state_action == DENY){
+        keyword_toString(output, &kw);
+        printk("[Hash Drop packet:%s]",output);
         return NF_DROP;
     }
 
@@ -133,11 +140,11 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
 
     if(rule_action == ALLOW){
         keyword_toString(output, &kw);
-        printk("[Accept packet:%s]",output);
+        printk("[List Accept packet:%s]",output);
         return NF_ACCEPT;
     }else if(rule_action == DENY){
         keyword_toString(output, &kw);
-        printk("[Drop packet:%s]",output);
+        printk("[List Drop packet:%s]",output);
         return NF_DROP;
     }
 
@@ -149,6 +156,7 @@ uint hook_output_func(void *priv,
 					   const struct nf_hook_state *state)
 {
     // 先提取keywords
+    
     return NF_ACCEPT;
 }
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb){
@@ -196,8 +204,12 @@ int extract_keyword(struct keyword *kw, const struct sk_buff *skb){
     return 1;
 }
 
-ulong hash_function(const struct keyword *kw){
-    ulong hash = 0;
+uint hash_function(const struct keyword *kw){
+    uint seed = 4; // 31 131 1313 13131 131313 etc..
+    uint hash = 0;
+	hash = kw->src_ip + kw->dst_ip;
+	hash = (hash << seed) + kw->protocol;
+	hash = hash + pkt.port[0] + pkt.port[1];
     return hash;
 }
 int compare_keywords(const struct keyword *k1, const struct keyword *k2){
@@ -219,7 +231,7 @@ int compare_rule(const struct rule *r, const struct keyword *kw){
         (r->protocol == kw->protocol);
 }
 int check_state_table(struct keyword *kw){
-    ulong hash = hash_function(kw);
+    uint hash = hash_function(kw);
     struct state_node *p;
     hash_for_each_possible(state_table, p, list, hash) {
         if(p->hash == hash) {
