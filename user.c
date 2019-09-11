@@ -17,16 +17,9 @@ struct message{
     char data[DATA_LEN];
 };
 
-// struct msg_to_kernel
-// {
-//     struct nlmsghdr hdr;
-//     char data[MSG_LEN];
-// };
-
 struct packet_info
 {
     struct nlmsghdr hdr;
-    //char msg[MSG_LEN];
     struct message msg;
 };
 
