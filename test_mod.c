@@ -469,10 +469,12 @@ int generate_one_rule(char* input){
 					tmp.protocol = 0x06; //tcp 
 				else if(pch[0]=='u' || pch[0] == 'U')
 					tmp.protocol = 0x11; //udp
-				else if(pch[0]=='i' || pch[0] == 'I')
+				else if(pch[0]=='i' || pch[0] == 'I'){
 					tmp.protocol = 0x01; //icmp
                     tmp.src_port = 0;
                     tmp.dst_port = 0;
+
+                }
 				else
 					return -1;
                 // printk("[protocol:%02X]:",tmp.protocol);
