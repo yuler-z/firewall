@@ -118,9 +118,9 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
 
     rule_action = check_rule_table(&kw);
     if(rule_action == 0){
-        char output[200];
-        keyword_toString(output, &kw);
-        printk("[Default packet:%s]",output);
+        // char output[200];
+        // keyword_toString(output, &kw);
+        // printk("[Default packet:%s]",output);
         return DEFAULT_ACTION;
     }
 
@@ -232,7 +232,7 @@ int check_rule_table(const struct keyword *kw){
     struct rule_node *p;
     list_for_each_entry(p, &rule_table, list){
         if(compare_rule(&p->rule, kw)){
-            return p->rule.action;
+            return (p->rule).action;
         }
     }
     return 0; // not find in rule table

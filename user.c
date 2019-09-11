@@ -25,7 +25,7 @@ int main(int argc, char* argv[])
 
     //"#sip/smaskoff sport dip/dmaskoff dport protocol action"
     char data[] = 
-                  "192.168.57.0/24 20 192.168.57.0/24 40 tcp deny#"
+                  "192.168.57.0/24 0 192.168.57.0/24 0 icmp deny#" // test in internal network 
                   "222.10.23.0/24 48 222.10.52.0/24 58 tcp deny#"
                   "182.61.200.6 0 192.168.57.148 0 icmp deny#"; //ping www.baidu.com
 //./proxy insert 0 192 168 200 153 32 -1 60 170 49 75 32 -1 tcp yes permit
