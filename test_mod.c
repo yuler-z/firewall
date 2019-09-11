@@ -424,7 +424,7 @@ int generate_one_rule(char* input){
                     if(in == 1){
                         tmp.src_ip = convert_ip(piece);
                     }else{
-                        tmp.src_maskoff = 0xffffffff << (simple_strtol(piece, NULL, 10));
+                        tmp.src_maskoff = 0xffffffff << (32 - simple_strtol(piece, NULL, 10));
                     }
                     in--;
                 }
@@ -447,7 +447,7 @@ int generate_one_rule(char* input){
                     if(in == 1){
                         tmp.dst_ip = convert_ip(piece);
                     }else{
-                        tmp.dst_maskoff = 0xffffffff << (simple_strtol(piece, NULL, 10));
+                        tmp.dst_maskoff = 0xffffffff << (32 - simple_strtol(piece, NULL, 10));
                     }
                     in--;
                 }
