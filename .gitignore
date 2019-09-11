@@ -1,5 +1,6 @@
 user
-*.md
+*.cmd
+*.mod.c
 *.o
 *.ko
 *.symvers
