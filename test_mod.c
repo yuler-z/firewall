@@ -26,7 +26,7 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("U201614817");
 
 #define NETLINK_TEST 25 // value > 16
-#define DEFAULT_ACTION NF_DROP
+#define DEFAULT_ACTION NF_ACCEPT
 // action macro
 #define NOT_FIND 0
 #define ALLOW 1
@@ -78,7 +78,7 @@ LIST_HEAD(rule_table); // init rule linkedlist
 
 /*----declaration of function----*/
 uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
-int add_hashtable(void);
+int add_hashtable(const struct keyword *kw, uint action);
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
 char* keyword_toString(char* output, const struct keyword *kw);
 char* rule_toString(char* output, const struct rule *pr);
@@ -92,15 +92,13 @@ int compare_keywords(const struct keyword *k1, const struct keyword *k2);
 int compare_rule(const struct rule *r, const struct keyword *kw);
 
 
-int add_hashtable(void){
+int add_hashtable(const struct keyword *kw, uint action){
     return 0;
 }
 
 
 
-uint hook_input_func(void *priv,
-					   struct sk_buff *skb,
-					   const struct nf_hook_state *state)
+uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
 
     // 先提取keywords
@@ -108,7 +106,6 @@ uint hook_input_func(void *priv,
     int state_action, rule_action;
     
     extract_keyword(&kw, skb);
-    return NF_ACCEPT;
 
  /*   state_action = check_state_table(kw);
     
@@ -120,6 +117,8 @@ uint hook_input_func(void *priv,
 */
 
     rule_action = check_rule_table(&kw);
+    if(rule == 0) return DEFAULT_ACTION;
+    add_hashtable(&kw, rule_action);
     if(rule_action == ALLOW){
         return NF_ACCEPT;
     }else if(rule_action == DENY){
@@ -498,7 +497,7 @@ int handle_rule_config(char* input){
         printk("[rule table foreach]:%s", output);
     }
 
-    send_to_user("Hello, I received your msg.");
+    send_to_user("Get it.");
     return 0;
 }
 
@@ -516,7 +515,6 @@ int send_to_user(char* data){
     char input[1000];
     struct sk_buff *skb;
     struct nlmsghdr *nlh;
-    // unsigned char *old_tail;
     
     memset(input, '\0', 1000*sizeof(char));
     memcpy(input, data, strlen(data));
@@ -529,9 +527,8 @@ int send_to_user(char* data){
 	}
 
     nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(strlen(input))-sizeof(struct nlmsghdr) /*size of payload*/, 0);  //put msg into skb
-    // old_tail = skb->tail;
+
     memcpy(NLMSG_DATA(nlh), input, strlen(input));
-    //nlh->nlmsg_len = skb->tail - old_tail;
 
     NETLINK_CB(skb).portid = 0;
     NETLINK_CB(skb).dst_group = 0;
