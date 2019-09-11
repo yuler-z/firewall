@@ -352,7 +352,7 @@ char* rule_toString(char* output, const struct rule *pr){
 
     //dst_port
     dst_port = pr->dst_port;
-    maskoff = pr->src_maskoff;
+    maskoff = pr->dst_maskoff;
     while(maskoff){
         dst_maskoff_num++;
         maskoff = maskoff << 1;
