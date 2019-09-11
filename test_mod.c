@@ -366,7 +366,7 @@ char* keyword_to_string(char* output, int length,  const struct keyword *kw){
     uint dst_ip = kw->dst_ip;
 
     // init char array
-    memset(output, '/0', length);
+    memset(output, '\0', length);
     // src_ip
     src_ip_arr[3] = src_ip % 256;
     src_ip /= 256;
@@ -429,7 +429,7 @@ char* rule_to_string(char* output, int length,  const struct rule *r){
     uint maskoff;
 
     // init char array
-    memset(output, '/0', length);
+    memset(output, '\0', length);
 
     // src_ip
     src_ip_arr[3] = src_ip % 256;
