@@ -638,8 +638,8 @@ int handle_rule_config(char* input){
     //     rule_to_string(output, &p->rule);
     //     printk("[rule table foreach]:%s", output);
     // }
-    debug_send_to_user("Get it");
-    //send_to_user("Get it.", TAG_MSG);
+    // debug_send_to_user("Get it");
+    send_to_user("Get it.", TAG_MSG);
     return 0;
 }
 
@@ -674,8 +674,8 @@ int send_to_user(char* data, int tag){
     nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(sizeof(struct message))-sizeof(struct nlmsghdr) /*size of payload*/, 0);  //init nlmsg header
 
     msg.tag = tag;
-    msg.length = strlen(data);
-    memcpy(msg.data, input, strlen(data));
+    msg.length = strlen(input);
+    memcpy(msg.data, input, strlen(input));
 
     memcpy(NLMSG_DATA(nlh), &msg, sizeof(msg));//put msg into skb
 
@@ -684,7 +684,7 @@ int send_to_user(char* data, int tag){
 
     //printk(KERN_DEBUG "[kernel space] skb->data:%s\n", (char *)NLMSG_DATA((struct nlmsghdr *)skb->data));
     retval = netlink_unicast(nlfd, skb, user_pid, MSG_DONTWAIT);
-    kfree(skb);
+    // kfree(skb);
     // printk(KERN_DEBUG "[kernel space] netlink_unicast return: %d\n", retval);
     return 0;  
 }
