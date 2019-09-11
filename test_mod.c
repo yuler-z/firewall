@@ -97,7 +97,7 @@ uint hook_output_func(void *priv, struct sk_buff *skb, const struct nf_hook_stat
 
 // state_table 
 struct option* check_state_table(struct keyword *kw);
-char* keyword_to_string(char* output, const struct keyword *kw);
+char* keyword_to_string(char* output, int length, const struct keyword *kw);
 uint hash_function(const struct keyword *kw);
 int keyword_compare(const struct keyword *k1, const struct keyword *k2);
 int add_state_node(const struct keyword *kw, const struct option *op);
@@ -105,7 +105,7 @@ int add_state_node(const struct keyword *kw, const struct option *op);
 // rule table 
 struct option*  check_rule_table(const struct keyword *kw);
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
-char* rule_to_string(char* output, const struct rule *r);
+char* rule_to_string(char* output, int length,  const struct rule *r);
 int rule_compare(const struct rule *r, const struct keyword *kw);
 int add_rule_node(char* input);
 int handle_rule_config(char* input);
@@ -157,7 +157,7 @@ int debug_send_to_user(char* data){
 /*-----function------*/
 int send_log_to_user(const struct keyword *kw, const struct option *op){
     char output[200];
-    keyword_to_string(output, kw);
+    keyword_to_string(output, 200, kw);
     if(op->action == ALLOW){
         strcat(output, " allow");
     }else{
@@ -171,7 +171,7 @@ int add_state_node(const struct keyword *kw, const struct option *op){
     char output[200];
     struct state_node* state = (struct state_node *)kmalloc(sizeof(struct state_node), GFP_KERNEL);
 
-    keyword_to_string(output, kw);
+    keyword_to_string(output, 200, kw);
 
     state->kw = *kw;
     state->hash = hash_function(kw);
@@ -199,11 +199,11 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
             send_log_to_user(&kw, state_option);
         }
         if(state_option->action == ALLOW){
-            keyword_to_string(output, &kw);
+            keyword_to_string(output, 200, &kw);
             printk("[Hash Accept packet:%s]",output);
             return NF_ACCEPT;
         }else if(state_option->action == DENY){
-            keyword_to_string(output, &kw);
+            keyword_to_string(output, 200, &kw);
             printk("[Hash Drop packet:%s]",output);
             return NF_DROP;
         }
@@ -219,11 +219,11 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     add_state_node(&kw, rule_option);
 
     if(rule_option->action == ALLOW){
-        keyword_to_string(output, &kw);
+        keyword_to_string(output, 200, &kw);
         printk("[List Accept packet:%s]",output);
         return NF_ACCEPT;
     }else if(rule_option->action == DENY){
-        keyword_to_string(output, &kw);
+        keyword_to_string(output, 200, &kw);
         printk("[List Drop packet:%s]",output);
         return NF_DROP;
     }
@@ -280,7 +280,7 @@ int extract_keyword(struct keyword *kw, const struct sk_buff *skb){
             return 0;
     }
     //char output[200];
-    //keyword_to_string(output, kw);
+    //keyword_to_string(output, 200, kw);
     // printk("[extract_keyword:%s]",output);
     return 1;
 }
@@ -355,7 +355,7 @@ uint convert_ip(char* ip){
     return total;
 }
 
-char* keyword_to_string(char* output, const struct keyword *kw){
+char* keyword_to_string(char* output, int length,  const struct keyword *kw){
     int src_ip_arr[4];
     uint src_port;
     int dst_ip_arr[4];
@@ -365,6 +365,8 @@ char* keyword_to_string(char* output, const struct keyword *kw){
     uint src_ip = kw->src_ip;
     uint dst_ip = kw->dst_ip;
 
+    // init char array
+    memset(output, '/0', length);
     // src_ip
     src_ip_arr[3] = src_ip % 256;
     src_ip /= 256;
@@ -405,13 +407,13 @@ char* keyword_to_string(char* output, const struct keyword *kw){
             break;
     }
 
-    snprintf(output, 200, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s ",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
+    snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s ",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
                                                                 dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3],  dst_port,\
                                                                 protocol);
     return output;     
 }
 
-char* rule_to_string(char* output, const struct rule *r){
+char* rule_to_string(char* output, int length,  const struct rule *r){
     int src_ip_arr[4];
     uint src_port;
     int src_maskoff_num = 0;
@@ -425,6 +427,9 @@ char* rule_to_string(char* output, const struct rule *r){
     uint src_ip = r->src_ip;
     uint dst_ip = r->dst_ip;
     uint maskoff;
+
+    // init char array
+    memset(output, '/0', length);
 
     // src_ip
     src_ip_arr[3] = src_ip % 256;
@@ -490,22 +495,22 @@ char* rule_to_string(char* output, const struct rule *r){
         log = "no";
     }
     if(src_maskoff_num == 32 && dst_maskoff_num == 32){
-        snprintf(output, 200, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
+        snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
                                                      dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3],dst_port,\
                                                      protocol, action, log);
 
     }else if(src_maskoff_num == 32){
-        snprintf(output, 200, "%d.%d.%d.%d %u %d.%d.%d.%d/%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
+        snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d/%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
                                                      dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_maskoff_num, dst_port,\
                                                      protocol, action, log);
 
     }else if(dst_maskoff_num == 32){
-        snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
+        snprintf(output, length, "%d.%d.%d.%d/%d %u %d.%d.%d.%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
                                                                 dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_port,\
                                                                 protocol, action, log);
 
     }else{
-        snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
+        snprintf(output, length, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
                                                      dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_maskoff_num, dst_port,\
                                                      protocol, action, log);
 
@@ -613,7 +618,7 @@ int add_rule_node(char* input){
     list_add_tail(&node->list, &rule_table);
 
     char output[200];
-    rule_to_string(output, &tmp);
+    rule_to_string(output, 200, &tmp);
     printk("[rule added]:%s",output);
 
     return 1;
@@ -635,7 +640,7 @@ int handle_rule_config(char* input){
     struct rule_node *p;
     char output[200];
     // list_for_each_entry(p, &rule_table, list){
-    //     rule_to_string(output, &p->rule);
+    //     rule_to_string(output, 200, &p->rule);
     //     printk("[rule table foreach]:%s", output);
     // }
     // debug_send_to_user("Get it");

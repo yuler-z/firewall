@@ -107,7 +107,7 @@ int main(int argc, char* argv[])
             continue;
         }else{
             //TODO: write to file
-            printf("message received from kernel:[%s]\n\n",(char*)info.msg.data);
+            printf("%s\n",(char*)info.msg.data);
         }
     }
         //接受内核态确认信息
