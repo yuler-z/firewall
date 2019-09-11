@@ -6,18 +6,27 @@
 #include <linux/netlink.h>
 
 #define NETLINK_TEST 25 // value > 16 
-#define MSG_LEN 1000
+#define DATA_LEN 500
 
-struct msg_to_kernel
-{
-    struct nlmsghdr hdr;
-    char data[MSG_LEN];
+#define TAG_END 0
+#define TAG_MSG 1
+struct message{
+    int tag; // 0 = end, 1 = msg, 
+    int length;
+    char data[DATA_LEN]
 };
 
-struct u_packet_info
+// struct msg_to_kernel
+// {
+//     struct nlmsghdr hdr;
+//     char data[MSG_LEN];
+// };
+
+struct packet_info
 {
     struct nlmsghdr hdr;
-    char msg[MSG_LEN];
+    //char msg[MSG_LEN];
+    struct message msg;
 };
 
 int main(int argc, char* argv[])
@@ -39,7 +48,7 @@ int main(int argc, char* argv[])
     int skfd; // the file description of netlink socket
     int ret, daddrlen = sizeof(struct sockaddr_nl);
     struct nlmsghdr *nlh;
-    struct u_packet_info info;
+    struct packet_info info;
     char *retval;
 
     skfd = socket(PF_NETLINK, SOCK_RAW, NETLINK_TEST);
@@ -62,10 +71,10 @@ int main(int argc, char* argv[])
     //daddr
     memset(&daddr, 0, sizeof(daddr));
     daddr.nl_family = AF_NETLINK;
-    daddr.nl_pid = 0;   // 发往内核，nl_pid和nl_groups设为0
+    daddr.nl_pid = 0;   // if send to kernel space，set nl_pid and nl_groups 0
     daddr.nl_groups = 0; // 
     
-    // 消息头
+    // nlmsghdr
     nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(strlen(data)));
     memset(nlh, 0, sizeof(struct nlmsghdr));
     nlh->nlmsg_len = NLMSG_SPACE(strlen(data)); //length of msg
@@ -76,24 +85,32 @@ int main(int argc, char* argv[])
     
     memcpy(NLMSG_DATA(nlh), data, strlen(data));
     
-    //printf("message sent to kernel is:\n %s\n\nlen:%d", (char *)NLMSG_DATA(nlh), nlh->nlmsg_len);
-    //printf("[%d]\n", /*(char *)NLMSG_DATA(nlh)*/nlh->nlmsg_len);
-    printf("[%s]:[%d]\n", (char *)NLMSG_DATA(nlh), nlh->nlmsg_len);
+    // printf("message sent to kernel is:\n %s\n\nlen:%d", (char *)NLMSG_DATA(nlh), nlh->nlmsg_len);
+    // printf("[%d]\n", /*(char *)NLMSG_DATA(nlh)*/nlh->nlmsg_len);
+    // printf("[%s]:[%d]\n", (char *)NLMSG_DATA(nlh), nlh->nlmsg_len);
     ret = sendto(skfd, nlh, nlh->nlmsg_len, 0,(struct sockaddr *)&daddr, sizeof(daddr));
     if(!ret){
         perror("send pid:");
         exit(-1);
     }
-    //接受内核态确认信息
-    ret = recvfrom(skfd, &info, sizeof(struct u_packet_info),0, (struct sockaddr*)&daddr, &daddrlen);
-    if(!ret){
-        perror("recv from kerner:");
-        exit(-1);
-    }
-    
-    printf("message received from kernel:[%s]\n\n",((char *)info.msg));
-    //内核和用户进行通信
 
+    // rcv log from kernel space
+    while(1){
+        ret = recvfrom(skfd, &info, sizeof(struct packet_info),0, (struct sockaddr*)&daddr, &daddrlen);
+        if(!ret){
+            perror("recv from kerner:");
+            exit(-1);
+        }
+        if((int)info.tag == TAG_END){
+            break;
+        }
+        if((info.length == 0){
+            continue;
+        }else{
+            //TODO: write to file
+            printf("message received from kernel:[%s]\n\n",((char *)info.msg));
+        }
+    }
     
     close(skfd);
     return 0;

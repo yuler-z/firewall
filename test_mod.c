@@ -19,25 +19,34 @@
 #include <linux/types.h>
 #include <linux/list.h>
 
-
+// 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("U201614817");
 
 #define NETLINK_TEST 25 // value > 16
 #define DEFAULT_ACTION NF_ACCEPT
 
-// action macro
+// action option
 #define ALLOW 1
 #define DENY -1
-
+// log option
 #define Yes 1
 #define No -1
+// packet info 
+#define DATA_LEN 500
+#define TAG_END 0
+#define TAG_MSG 1
+
+struct packet_info{
+    int tag; // 0 = end, 0 = msg, 
+    int length;
+    char data[DATA_LEN]
+};
 
 struct option{
     int action; //            1 = allow, -1 = deny 
     int log; //               1 = yes, -1 = no
 };
-
 
 /*----Keyword Hashtable----*/
 struct keyword {
@@ -92,7 +101,6 @@ uint hash_function(const struct keyword *kw);
 int keyword_compare(const struct keyword *k1, const struct keyword *k2);
 int add_state_node(const struct keyword *kw, const struct *option);
 
-
 // rule table 
 struct option check_rule_table(const struct keyword *kw);
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
@@ -102,16 +110,17 @@ int add_rule_node(char* input);
 int handle_rule_config(char* input);
 
 // communication between user space and kernel space
-int send_to_user(char* data);
+int send_to_user(char* data, int tag);
 void rcv_from_user(struct sk_buff *_skb);
 
 //
 uint convert_ip(char* ip);
-
-void send_log_to_user(const struct *keyword, const struct *option){
+/*-----function------*/
+int send_log_to_user(const struct *keyword, const struct *option){
     char output[200];
     keyword_to_string(output, keyword);
-    send_to_user()
+    send_to_user(output, TAG_MSG);
+    return 1;
 }
 
 int add_state_node(const struct keyword *kw, const struct *option){
@@ -125,8 +134,6 @@ int add_state_node(const struct keyword *kw, const struct *option){
     printk("[add_state_node]:add %s", output);
     return 1;
 }
-
-
 
 uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
@@ -186,6 +193,7 @@ uint hook_output_func(void *priv,
     
     return NF_ACCEPT;
 }
+
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb){
     /**
      * 0 extract error
@@ -239,6 +247,7 @@ uint hash_function(const struct keyword *kw){
 	hash = hash + kw->src_port + kw->dst_port;
     return hash;
 }
+
 int keyword_compare(const struct keyword *k1, const struct keyword *k2){
 
     return \ 
@@ -248,6 +257,7 @@ int keyword_compare(const struct keyword *k1, const struct keyword *k2){
         (k1->dst_port == k2->src_port) && \
         (k1->protocol == k2->protocol);
 }
+
 int rule_compare(const struct rule *r, const struct keyword *kw){
     
     return \
@@ -257,6 +267,7 @@ int rule_compare(const struct rule *r, const struct keyword *kw){
         (r->dst_port == kw->dst_port) && \
         (r->protocol == kw->protocol);
 }
+
 struct option* check_state_table(struct keyword *kw){
     uint hash = hash_function(kw);
     struct state_node *p;
@@ -280,7 +291,6 @@ struct option* check_rule_table(const struct keyword *kw){
     return NULL; // not find in rule table
 }
 
-// 
 uint convert_ip(char* ip){
     char* token = NULL;
     int num = 0;
@@ -298,6 +308,7 @@ uint convert_ip(char* ip){
     }
     return total;
 }
+
 char* keyword_to_string(char* output, const struct keyword *kw){
     int src_ip_arr[4];
     uint src_port;
@@ -561,6 +572,7 @@ int add_rule_node(char* input){
 
     return 1;
 }
+
 int handle_rule_config(char* input){
     //int size = strlen(input);
     int num = 1;
@@ -585,7 +597,7 @@ int handle_rule_config(char* input){
     return 0;
 }
 
-int send_to_user(char* data){
+int send_to_user(char* data, int tag){
     //1)declare a struct sk_buff*  
     //2)declare a struct nlmsghdr *  
     //3)call alloc_skb() to alloc the struct skb_buff   
@@ -596,14 +608,16 @@ int send_to_user(char* data){
     //8)call the netlink_unicast() to transmit the struct skb_buff 
   	int size;
 	int retval;
-    char input[1000];
+    char input[500];
     struct sk_buff *skb;
     struct nlmsghdr *nlh;
-    
-    memset(input, '\0', 1000*sizeof(char));
+    struct packet_info info; 
+
+    memset(input, '\0', 500*sizeof(char));
     memcpy(input, data, strlen(data));
     
-    size = NLMSG_SPACE(strlen(input));
+    //size = NLMSG_SPACE(strlen(input));
+    size = NLMSG_SPACE(sizeof(struct info));
     skb = alloc_skb(size, GFP_ATOMIC);
     if(!skb)
 	{
@@ -611,9 +625,13 @@ int send_to_user(char* data){
 	}
 
     //
-    nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(strlen(input))-sizeof(struct nlmsghdr) /*size of payload*/, 0);  //init nlmsg header
+    nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(sizeof(struct info))-sizeof(struct nlmsghdr) /*size of payload*/, 0);  //init nlmsg header
 
-    memcpy(NLMSG_DATA(nlh), input, strlen(input));//put msg into skb
+    info.tag = tag;
+    info.length = strlen(data);
+    memcpy(info.data, input, strlen(data));
+
+    memcpy(NLMSG_DATA(nlh), info, sizeof(info));//put msg into skb
 
     NETLINK_CB(skb).portid = 0;
     NETLINK_CB(skb).dst_group = 0;
@@ -624,6 +642,7 @@ int send_to_user(char* data){
     // printk(KERN_DEBUG "[kernel space] netlink_unicast return: %d\n", retval);
     return 0;  
 }
+
 void rcv_from_user(struct sk_buff *__skb)
 {
     struct sk_buff *skb;
@@ -700,7 +719,6 @@ void exit_mod(void)
         kfree(s);
     }
 }
-
 
 
 module_init(init_mod);
