@@ -93,7 +93,12 @@ int compare_rule(const struct rule *r, const struct keyword *kw);
 
 
 int add_hashtable(const struct keyword *kw, uint action){
-    return 0;
+    struct state_node* state = (struct state_node *)kmalloc(sizeof(struct state_node), GFP_KERNEL);
+    state->kw = *kw;
+    state->hash = hash_function(kw);
+    state->action = action;
+    hash_add(state_table, &state->list, state->hash);
+    return 1;
 }
 
 
@@ -124,7 +129,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
         return DEFAULT_ACTION;
     }
 
-    //add_hashtable(&kw, rule_action);
+    add_hashtable(&kw, rule_action);
 
     if(rule_action == ALLOW){
         keyword_toString(output, &kw);
