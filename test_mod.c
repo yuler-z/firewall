@@ -124,7 +124,8 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
         return DEFAULT_ACTION;
     }
 
-    add_hashtable(&kw, rule_action);
+    //add_hashtable(&kw, rule_action);
+
     if(rule_action == ALLOW){
         char output[200];
         keyword_toString(output, &kw);
@@ -138,8 +139,6 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     }
 
     return DEFAULT_ACTION;
-
-    
 }
 
 uint hook_output_func(void *priv,
@@ -495,7 +494,7 @@ int generate_one_rule(char* input){
     }
     // add rule into rule_table
     node->rule = tmp;
-    list_add(&node->list, &rule_table);
+    list_add_tail(&node->list, &rule_table);
 
     char output[200];
     rule_toString(output, &tmp);
