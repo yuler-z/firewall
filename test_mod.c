@@ -104,7 +104,8 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     // 先提取keywords
     struct keyword kw;
     int state_action, rule_action;
-    
+    char output[200];
+
     extract_keyword(&kw, skb);
 
  /*   state_action = check_state_table(kw);
@@ -118,7 +119,6 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
 
     rule_action = check_rule_table(&kw);
     if(rule_action == 0){
-        // char output[200];
         // keyword_toString(output, &kw);
         // printk("[Default packet:%s]",output);
         return DEFAULT_ACTION;
@@ -127,12 +127,10 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     //add_hashtable(&kw, rule_action);
 
     if(rule_action == ALLOW){
-        char output[200];
         keyword_toString(output, &kw);
         printk("[Accept packet:%s]",output);
         return NF_ACCEPT;
     }else if(rule_action == DENY){
-        char output[200];
         keyword_toString(output, &kw);
         printk("[Drop packet:%s]",output);
         return NF_DROP;
@@ -473,6 +471,8 @@ int generate_one_rule(char* input){
 					tmp.protocol = 0x11; //udp
 				else if(pch[0]=='i' || pch[0] == 'I')
 					tmp.protocol = 0x01; //icmp
+                    tmp.src_port = 0;
+                    tmp.dst_port = 0;
 				else
 					return -1;
                 // printk("[protocol:%02X]:",tmp.protocol);
