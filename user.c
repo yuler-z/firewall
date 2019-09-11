@@ -10,10 +10,11 @@
 
 #define TAG_END 0
 #define TAG_MSG 1
+
 struct message{
     int tag; // 0 = end, 1 = msg, 
     int length;
-    char data[DATA_LEN]
+    char data[DATA_LEN];
 };
 
 // struct msg_to_kernel
@@ -39,8 +40,8 @@ int main(int argc, char* argv[])
     char data[] = 
                 //    "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow#" // test in internal network 
                 //   "222.10.23.0/24 48 222.10.52.0/24 58 tcp deny#"
-                    "202.114.0.245 0 192.168.57.0/24 0 icmp deny yes";
-                //   "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny#"; //ping www.baidu.com
+               //     "202.114.0.245 0 192.168.57.0/24 0 icmp deny yes";
+                   "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny yes#"; //ping www.baidu.com
 
     //初始化
     struct sockaddr_nl saddr; // source socket addr
@@ -101,14 +102,14 @@ int main(int argc, char* argv[])
             perror("recv from kerner:");
             exit(-1);
         }
-        if((int)info.tag == TAG_END){
+        if((int)info.msg.tag == TAG_END){
             break;
         }
-        if((info.length == 0){
+        if(info.msg.length == 0){
             continue;
         }else{
             //TODO: write to file
-            printf("message received from kernel:[%s]\n\n",((char *)info.msg));
+            printf("message received from kernel:[%s]\n\n",(char*)info.msg.data);
         }
     }
     

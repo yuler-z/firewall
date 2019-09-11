@@ -30,17 +30,17 @@ MODULE_AUTHOR("U201614817");
 #define ALLOW 1
 #define DENY -1
 // log option
-#define Yes 1
-#define No -1
-// packet info 
+#define YES 1
+#define NO -1
+// msg 
 #define DATA_LEN 500
 #define TAG_END 0
 #define TAG_MSG 1
 
-struct packet_info{
+struct message{
     int tag; // 0 = end, 0 = msg, 
     int length;
-    char data[DATA_LEN]
+    char data[DATA_LEN];
 };
 
 struct option{
@@ -51,10 +51,10 @@ struct option{
 /*----Keyword Hashtable----*/
 struct keyword {
 	uint src_ip;
-	uint dst_ip;
-	uint protocol;
     uint src_port;
+	uint dst_ip;
 	uint dst_port;
+	uint protocol;
 };
 
 struct state_node {
@@ -72,6 +72,7 @@ struct rule {
 	uint dst_ip; 
 	uint dst_maskoff;
 	uint dst_port;
+    int protocol;
     struct option op; // {action, log}
 };
 
@@ -95,14 +96,14 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
 uint hook_output_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 
 // state_table 
-struct option check_state_table(struct keyword *kw);
+struct option* check_state_table(struct keyword *kw);
 char* keyword_to_string(char* output, const struct keyword *kw);
 uint hash_function(const struct keyword *kw);
 int keyword_compare(const struct keyword *k1, const struct keyword *k2);
-int add_state_node(const struct keyword *kw, const struct *option);
+int add_state_node(const struct keyword *kw, const struct option *op);
 
 // rule table 
-struct option check_rule_table(const struct keyword *kw);
+struct option*  check_rule_table(const struct keyword *kw);
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
 char* rule_to_string(char* output, const struct rule *r);
 int rule_compare(const struct rule *r, const struct keyword *kw);
@@ -116,20 +117,27 @@ void rcv_from_user(struct sk_buff *_skb);
 //
 uint convert_ip(char* ip);
 /*-----function------*/
-int send_log_to_user(const struct *keyword, const struct *option){
+int send_log_to_user(const struct keyword *kw, const struct option *op){
     char output[200];
-    keyword_to_string(output, keyword);
+    keyword_to_string(output, kw);
+    if(op->action == ALLOW){
+        strcat(output, " allow");
+    }else{
+        strcat(output, " deny");
+    }
     send_to_user(output, TAG_MSG);
     return 1;
 }
 
-int add_state_node(const struct keyword *kw, const struct *option){
+int add_state_node(const struct keyword *kw, const struct option *op){
     char output[200];
-    keyword_to_string(output, kw);
     struct state_node* state = (struct state_node *)kmalloc(sizeof(struct state_node), GFP_KERNEL);
+
+    keyword_to_string(output, kw);
+
     state->kw = *kw;
     state->hash = hash_function(kw);
-    state->option = *option;
+    state->op = *op;
     hash_add(state_table, &state->list, state->hash);
     printk("[add_state_node]:add %s", output);
     return 1;
@@ -170,7 +178,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
         return DEFAULT_ACTION;
     }
 
-    add_state_node(&kw, &rule_option);
+    add_state_node(&kw, rule_option);
 
     if(rule_option->action == ALLOW){
         keyword_to_string(output, &kw);
@@ -250,7 +258,7 @@ uint hash_function(const struct keyword *kw){
 
 int keyword_compare(const struct keyword *k1, const struct keyword *k2){
 
-    return \ 
+    return   \
         (k1->src_ip == k2->src_ip) && \
         (k1->src_port == k2->src_port) && \
         (k1->dst_ip == k2->dst_ip) && \
@@ -274,7 +282,7 @@ struct option* check_state_table(struct keyword *kw){
     hash_for_each_possible(state_table, p, list, hash) {
         if(p->hash == hash) {
             if(keyword_compare(&p->kw, kw)){
-                return &(p->option);
+                return &(p->op);
             }
         }
     }
@@ -285,7 +293,7 @@ struct option* check_rule_table(const struct keyword *kw){
     struct rule_node *p;
     list_for_each_entry(p, &rule_table, list){
         if(rule_compare(&p->rule, kw)){
-            return &((p->rule).option);
+            return &((p->rule).op);
         }
     }
     return NULL; // not find in rule table
@@ -431,17 +439,17 @@ char* rule_to_string(char* output, const struct rule *r){
     }
 
     //action
-    if(r->action == 1){
+    if(r->op.action == ALLOW){
         action = "allow";
     }else{
         action = "deny";
     }
 
     // log
-    if(r->action = 1){
-        action = "yes";
+    if(r->op.log == YES){
+        log = "yes";
     }else{
-        action = "no";
+        log = "no";
     }
     if(src_maskoff_num == 32 && dst_maskoff_num == 32){
         snprintf(output, 200, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
@@ -546,17 +554,17 @@ int add_rule_node(char* input){
             // action
             case 5:
                 if(pch[0] == 'a' || pch[0] == 'A'){
-                    tmp.option.action = ALLOW;
+                    tmp.op.action = ALLOW;
                 }else/* if(pch[0] == 'd' || pch[0] == 'D')*/{
-                    tmp.option.action = DENY;
+                    tmp.op.action = DENY;
                 }
                 // printk("[action:%d]", tmp.action);
             // log
             case 6:
                 if(pch[0] == 'y' || pch[0] == 'Y'){
-                    tmp.option.log = YES;
+                    tmp.op.log = YES;
                 }else/* if(pch[0] == 'n' || pch[0] == 'N')*/{
-                    tmp.option.log = NO;
+                    tmp.op.log = NO;
                 }
         }
         num++;
@@ -593,7 +601,7 @@ int handle_rule_config(char* input){
         printk("[rule table foreach]:%s", output);
     }
 
-    send_to_user("Get it.");
+    send_to_user("Get it.", TAG_MSG);
     return 0;
 }
 
@@ -611,13 +619,13 @@ int send_to_user(char* data, int tag){
     char input[500];
     struct sk_buff *skb;
     struct nlmsghdr *nlh;
-    struct packet_info info; 
+    struct message msg; 
 
     memset(input, '\0', 500*sizeof(char));
     memcpy(input, data, strlen(data));
     
     //size = NLMSG_SPACE(strlen(input));
-    size = NLMSG_SPACE(sizeof(struct info));
+    size = NLMSG_SPACE(sizeof(struct message));
     skb = alloc_skb(size, GFP_ATOMIC);
     if(!skb)
 	{
@@ -625,13 +633,13 @@ int send_to_user(char* data, int tag){
 	}
 
     //
-    nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(sizeof(struct info))-sizeof(struct nlmsghdr) /*size of payload*/, 0);  //init nlmsg header
+    nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(sizeof(struct message))-sizeof(struct nlmsghdr) /*size of payload*/, 0);  //init nlmsg header
 
-    info.tag = tag;
-    info.length = strlen(data);
-    memcpy(info.data, input, strlen(data));
+    msg.tag = tag;
+    msg.length = strlen(data);
+    memcpy(msg.data, input, strlen(data));
 
-    memcpy(NLMSG_DATA(nlh), info, sizeof(info));//put msg into skb
+    memcpy(NLMSG_DATA(nlh), &msg, sizeof(msg));//put msg into skb
 
     NETLINK_CB(skb).portid = 0;
     NETLINK_CB(skb).dst_group = 0;
@@ -699,7 +707,8 @@ void exit_mod(void)
 	printk("firewall module exit ...\n");
 	nf_unregister_net_hook(&init_net, &input_hook); //取消钩子注册
 	nf_unregister_net_hook(&init_net, &output_hook); //取消钩子注册
-
+    
+    send_to_user("", TAG_END);
 
     sock_release(nlfd->sk_socket);
 
