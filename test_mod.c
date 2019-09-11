@@ -108,15 +108,15 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
 
     extract_keyword(&kw, skb);
 
- /*   state_action = check_state_table(kw);
-    
+    // 1. check state table
+    state_action = check_state_table(&kw);
     if(state_action == ALLOW){
         return NF_ACCEPT;
     }else if(state_action == DENY){
         return NF_DROP;
     }
-*/
 
+    // 2. cheack rule table
     rule_action = check_rule_table(&kw);
     if(rule_action == 0){
         // keyword_toString(output, &kw);
