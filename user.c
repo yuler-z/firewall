@@ -26,7 +26,8 @@ int main(int argc, char* argv[])
     //"#sip/smaskoff sport dip/dmaskoff dport protocol action"
     char data[] = 
                   "192.168.57.0/24 20 192.168.57.0/24 40 tcp deny#"
-                  "222.10.23.0/24 48 222.10.52.0/24 58 tcp deny#";
+                  "222.10.23.0/24 48 222.10.52.0/24 58 tcp deny#"
+                  "www.baidu.com      192.168.57.148 0 icmp deny#"
 //./proxy insert 0 192 168 200 153 32 -1 60 170 49 75 32 -1 tcp yes permit
 //./proxy insert 1 183 78 181 60 32 -1 192 168 200 150 32 -1 tcp yes permit
 //insert 0 192 168 200 150 32 -1 192 168 200 2 32 -1 tcp yes permit

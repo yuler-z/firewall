@@ -117,14 +117,23 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
 */
 
     rule_action = check_rule_table(&kw);
-    if(rule == 0) return DEFAULT_ACTION;
+    if(rule_action == 0){
+        char output[200];
+        keyword_toString(output, &kw);
+        printk("[Default packet:%s]",output);
+        return DEFAULT_ACTION;
+    }
+
     add_hashtable(&kw, rule_action);
     if(rule_action == ALLOW){
+        char output[200];
+        keyword_toString(output, &kw);
+        printk("[Accept packet:%s]",output);
         return NF_ACCEPT;
     }else if(rule_action == DENY){
         char output[200];
         keyword_toString(output, &kw);
-        printk("[drop packet:%s]",output);
+        printk("[Drop packet:%s]",output);
         return NF_DROP;
     }
 
@@ -314,7 +323,7 @@ char* rule_toString(char* output, const struct rule *pr){
     char* protocol = "error";
     char* action = "error";
 
-    uint src_ip = pr->dst_ip;
+    uint src_ip = pr->src_ip;
     uint dst_ip = pr->dst_ip;
     uint maskoff;
 
@@ -374,10 +383,27 @@ char* rule_toString(char* output, const struct rule *pr){
     }else{
         action = "deny";
     }
+    if(src_maskoff_num == 32 && dst_maskoff_num == 32){
+        snprintf(output, 200, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
+                                                     dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3],dst_port,\
+                                                     protocol, action);
 
-    snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
+    }else if(src_maskoff_num == 32){
+        snprintf(output, 200, "%d.%d.%d.%d %u %d.%d.%d.%d/%d %u %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,\
                                                      dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_maskoff_num, dst_port,\
                                                      protocol, action);
+
+    }else if(dst_maskoff_num == 32){
+        snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d %u %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
+                                                                dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_port,\
+                                                                protocol, action);
+
+    }else{
+        snprintf(output, 200, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s",src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,\
+                                                     dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_maskoff_num, dst_port,\
+                                                     protocol, action);
+
+    }
     return output; 
 }
 
