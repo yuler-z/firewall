@@ -38,8 +38,8 @@ int main(int argc, char* argv[])
     char data[] = 
                 //    "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow#" // test in internal network 
                 //   "222.10.23.0/24 48 222.10.52.0/24 58 tcp deny#"
-               //     "202.114.0.245 0 192.168.57.0/24 0 icmp deny yes";
-                   "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny yes#"; //ping www.baidu.com
+                    "202.114.0.245 0 192.168.57.0/24 0 icmp deny yes"; // ping www.hust.edu.cn
+                //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny yes#"; //ping www.baidu.com
 
     //初始化
     struct sockaddr_nl saddr; // source socket addr
