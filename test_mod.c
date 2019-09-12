@@ -172,7 +172,7 @@ int send_log_to_user(const struct keyword *kw, const struct option *op)
     if (op->action == ALLOW)
     {
         strcpy(output, "[log]:allow ");
-        strcpy(output + 12, kw_str)
+        strcpy(output + 12, kw_str);
     }
     else
     {
