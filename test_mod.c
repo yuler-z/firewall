@@ -165,18 +165,21 @@ int debug_send_to_user(char *data)
 int send_log_to_user(const struct keyword *kw, const struct option *op)
 {
     int length = 200;
-    char* output = (char*)kmalloc(sizeof(char)*length, GFP_KERNEL);
-    keyword_to_string(output, length, kw);
+    char output[400];
+    char kw_str[200];
+    keyword_to_string(kw_str, length, kw);
+
     if (op->action == ALLOW)
     {
-        strcat(output, " allow");
+        strcpy(output, "[log]:allow ");
+        strcpy(output + 12, kw_str)
     }
     else
     {
-        strcat(output, " deny");
+        strcpy(output, "[log]:deny ");
+        strcpy(output + 11, kw_str);
     }
     send_to_user(output, TAG_MSG);
-    kfree(output);
     return 1;
 }
 
