@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <string.h>
 #include <linux/netlink.h>
+#include <pthread.h>
 
 #define NETLINK_TEST 25 // value > 16 
 #define DATA_LEN 500
@@ -135,6 +136,16 @@ int main(int argc, char* argv[])
                     "202.114.0.245 0 192.168.57.0/24 0 icmp deny yes"; // ping www.hust.edu.cn
                 //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny yes#"; //ping www.baidu.com
     char input[200];
+    int flag = 0;
+    int id, ret;
+    init_socket();
+
+    ret=pthread_create(&id,NULL,(void *)rcv_from_kernel, NULL); 
+　　if(ret != 0){ 
+　　　　printf ("Create pthread error!\n"); 
+　　　　exit (1); 
+　　} 
+
     send_to_kernel("allow", TAG_DEFAULT);
     send_to_kernel(data, TAG_CONFIG)
 
@@ -143,17 +154,28 @@ int main(int argc, char* argv[])
         if(strcmp(input, "quit") == 0 || input[0] == 'q'){ // quit, exit 
             break;
         }else if(strcmp(input, "insert") == 0 || input[0] == 'i'){ // insert
-            get(input);
-            send_to_kernel(input, TAG_INSERT);
+            if(flag){
+                get(input);
+                send_to_kernel(input, TAG_INSERT);
+                flag = 0;
+            }else{
+                printf("please input \"first\" to get rule table.\n");
+            }
         }else if(strcmp(input, "delete") == 0 || input[0] == 'd'){ // delete one rule
-            get(input);
-            send_to_kernel(input, TAG_DELETE);
-        }else if(strcmp(input, "check") || input[0] == 'c'){ // print rule table
+            if(flag){
+                get(input);
+                send_to_kernel(input, TAG_DELETE);
+                flag = 0;
+            }else{
+                printf("please input \"first\" to get rule table.\n");
+            }
+        }else if(strcmp(input, "print") || input[0] == 'p'){ // print rule table
+            flag = 1;
             get(input);
             send_to_kernel(input, TAG_PRINT);
         }
     }
 
-    
+    exit_socket();
     return 0;
 }
