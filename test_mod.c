@@ -166,10 +166,10 @@ int send_log_to_user(const struct keyword *kw, const struct option *op)
 {
     int length = 200;
     char output[400];
-    char kw_str[200];
+   char kw_str[200];
 
-    memeset(output, '\0', 400 * sizeof(char));
-    memeset(kw_str, '\0', 200 * sizeof(char));
+    memset(output, '\0', 400 * sizeof(char));
+    memset(kw_str, '\0', 200 * sizeof(char));
 
     keyword_to_string(kw_str, length, kw);
     if (op->action == ALLOW)
@@ -455,7 +455,7 @@ char *keyword_to_string(char *output, int length, const struct keyword *kw)
         break;
     }
 
-    snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s\0", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
+    snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
              dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_port,
              protocol);
     return output;
@@ -554,25 +554,25 @@ char *rule_to_string(char *output, int length, const struct rule *r)
     }
     if (src_maskoff_num == 32 && dst_maskoff_num == 32)
     {
-        snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s %s %s\0", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
+        snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s %s %s", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
                  dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_port,
                  protocol, action, log);
     }
     else if (src_maskoff_num == 32)
     {
-        snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d/%d %u %s %s %s\0", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
+        snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d/%d %u %s %s %s", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
                  dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_maskoff_num, dst_port,
                  protocol, action, log);
     }
     else if (dst_maskoff_num == 32)
     {
-        snprintf(output, length, "%d.%d.%d.%d/%d %u %d.%d.%d.%d %u %s %s %s\0", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,
+        snprintf(output, length, "%d.%d.%d.%d/%d %u %d.%d.%d.%d %u %s %s %s", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,
                  dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_port,
                  protocol, action, log);
     }
     else
     {
-        snprintf(output, length, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s %s\0", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,
+        snprintf(output, length, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s %s", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,
                  dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_maskoff_num, dst_port,
                  protocol, action, log);
     }
@@ -748,10 +748,12 @@ int send_to_user(char *data, int tag)
     struct message msg;
 
     memset(input, '\0', 500 * sizeof(char));
+    memset(msg.data, '\0', DATA_LEN);
     memcpy(input, data, strlen(data));
 
+
     //size = NLMSG_SPACE(strlen(input));
-    size = NLMSG_SPACE(sizeof(struct message));
+    size = NLMSG_SPACE(sizeof(msg));
     skb = alloc_skb(size, GFP_ATOMIC);
     if (!skb)
     {
@@ -759,7 +761,7 @@ int send_to_user(char *data, int tag)
     }
 
     //
-    nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(sizeof(struct message)) - sizeof(struct nlmsghdr) /*size of payload*/, 0); //init nlmsg header
+    nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(sizeof(msg)) - sizeof(struct nlmsghdr) /*size of payload*/, 0); //init nlmsg header
 
     msg.tag = tag;
     msg.length = strlen(input);
