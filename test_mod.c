@@ -24,7 +24,6 @@ MODULE_LICENSE("GPL");
 MODULE_AUTHOR("U201614817");
 
 #define NETLINK_TEST 25 // value > 16
-#define DEFAULT_ACTION NF_ACCEPT
 
 // action option
 #define ALLOW 1
@@ -34,8 +33,18 @@ MODULE_AUTHOR("U201614817");
 #define NO -1
 // msg
 #define DATA_LEN 500
+
 #define TAG_END 0
 #define TAG_MSG 1
+#define TAG_LOG 2
+// command
+#define TAG_INSERT 3
+#define TAG_DELETE 4 
+#define TAG_PRINT 5
+// default action and configuration
+#define TAG_CONFIG 6
+#define TAG_DEFAULT 7
+
 
 struct message
 {
@@ -94,6 +103,7 @@ static struct nf_hook_ops output_hook; // output hook
 static struct sock *nlfd = NULL;       //netlink file description
 DEFINE_HASHTABLE(state_table, 10);     //init keyword hashtable
 LIST_HEAD(rule_table);                 // init rule linkedlist
+uint default_action = NF_DROP;
 
 /*----declaration of function----*/
 // hook function
@@ -102,108 +112,33 @@ uint hook_output_func(void *priv, struct sk_buff *skb, const struct nf_hook_stat
 
 // state_table
 struct option *check_state_table(struct keyword *kw);
-char *keyword_to_string(char *output, int length, const struct keyword *kw);
-uint hash_function(const struct keyword *kw);
 int keyword_compare(const struct keyword *k1, const struct keyword *k2);
+char *keyword_to_string(char *output, int length, const struct keyword *kw);
+int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
+uint hash_function(const struct keyword *kw);
 int add_state_node(const struct keyword *kw, const struct option *op);
 
 // rule table
 struct option *check_rule_table(const struct keyword *kw);
-int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
-char *rule_to_string(char *output, int length, const struct rule *r);
 int rule_compare(const struct rule *r, const struct keyword *kw);
-int add_rule_node(char *input);
-int handle_rule_config(char *input);
+char *rule_to_string(char *output, int length, const struct rule *r);
+uint convert_ip(char *ip);
+int handle_rules_config(char *input);
+int add_rule_node(char *input, int position);
+int insert_one_rule(char *input);
+int delete_one_rule(char *input);
+int print_rule_table(void);
 
 // communication between user space and kernel space
+int send_log_to_user(const struct keyword *kw, const struct option *op);
 int send_to_user(char *data, int tag);
 void rcv_from_user(struct sk_buff *_skb);
 
 //
-uint convert_ip(char *ip);
+
 // --------------------------------------------debug-----------------------------------//
-int debug_send_to_user(char *data)
-{
-    //1)declare a struct sk_buff*
-    //2)declare a struct nlmsghdr *
-    //3)call alloc_skb() to alloc the struct skb_buff
-    //4)appenxid the struct nlmsg to the tail of the struct skb_buff
-    //5)get the nlmsghdt ponit to the field of the struct skb_buff
-    //6)init the fiels of the nlmsg
-    //7)insrt the meg into the mlmsg
-    //8)call the netlink_unicast() to transmit the struct skb_buff
 
-    int size;
-    int retval;
-    char input[1000];
-    struct sk_buff *skb;
-    struct nlmsghdr *nlh;
-
-    memset(input, '\0', 1000 * sizeof(char));
-    memcpy(input, data, strlen(data));
-
-    size = NLMSG_SPACE(strlen(input));
-    skb = alloc_skb(size, GFP_ATOMIC);
-    if (!skb)
-    {
-        printk("my_net_link:alloc_skb_1 error\n");
-    }
-
-    nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(strlen(input)) - sizeof(struct nlmsghdr) /*size of payload*/, 0); //put msg into skb
-
-    memcpy(NLMSG_DATA(nlh), input, strlen(input));
-
-    NETLINK_CB(skb).portid = 0;
-    NETLINK_CB(skb).dst_group = 0;
-
-    //printk(KERN_DEBUG "[kernel space] skb->data:%s\n", (char *)NLMSG_DATA((struct nlmsghdr *)skb->data));
-    retval = netlink_unicast(nlfd, skb, user_pid, MSG_DONTWAIT);
-    printk(KERN_DEBUG "[kernel space] netlink_unicast return: %d\n", retval);
-    return 0;
-}
 /*-----function------*/
-int send_log_to_user(const struct keyword *kw, const struct option *op)
-{
-    int length = 200;
-    char output[400];
-   char kw_str[200];
-
-    memset(output, '\0', 400 * sizeof(char));
-    memset(kw_str, '\0', 200 * sizeof(char));
-
-    keyword_to_string(kw_str, length, kw);
-    if (op->action == ALLOW)
-    {
-        strcpy(output, "[log]:allow ");
-        strcpy(output + 12, kw_str);
-        output[strlen(kw_str) + 12] = '\0';
-    }
-    else
-    {
-        strcpy(output, "[log]:deny ");
-        strcpy(output + 11, kw_str);
-        output[strlen(kw_str) + 11] = '\0';
-    }
-    printk("%s", output);
-    send_to_user(output, TAG_MSG);
-    return 1;
-}
-
-int add_state_node(const struct keyword *kw, const struct option *op)
-{
-    char output[200];
-    struct state_node *state = (struct state_node *)kmalloc(sizeof(struct state_node), GFP_KERNEL);
-
-    keyword_to_string(output, 200, kw);
-
-    state->kw = *kw;
-    state->hash = hash_function(kw);
-    state->op = *op;
-    hash_add(state_table, &state->list, state->hash);
-    printk("[add_state_node]:add %s", output);
-    return 1;
-}
-
 uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
 
@@ -241,7 +176,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     rule_option = check_rule_table(&kw);
     if (rule_option == NULL)
     {
-        return DEFAULT_ACTION;
+        return default_action;
     }
 
     add_state_node(&kw, rule_option);
@@ -259,7 +194,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
         return NF_DROP;
     }
 
-    return DEFAULT_ACTION;
+    return default_action;
 }
 
 uint hook_output_func(void *priv,
@@ -269,85 +204,6 @@ uint hook_output_func(void *priv,
     // 先提取keywords
 
     return NF_ACCEPT;
-}
-
-int extract_keyword(struct keyword *kw, const struct sk_buff *skb)
-{
-    /**
-     * 0 extract error
-     * 1 ok 
-     */
-    struct iphdr *ip_header;
-    struct udphdr *udp_header;
-    struct tcphdr *tcp_header;
-    if (!skb)
-        return 0;
-
-    // ip
-    ip_header = (struct iphdr *)skb_network_header(skb);
-    if (!ip_header)
-        return 0;
-
-    kw->src_ip = (uint)(ntohl(ip_header->saddr));
-    kw->dst_ip = (uint)(ntohl(ip_header->daddr));
-    kw->protocol = ip_header->protocol;
-
-    switch (ip_header->protocol)
-    {
-    // ICMP
-    case 0x01:
-        kw->src_port = (uint)0;
-        kw->dst_port = (uint)0;
-        break;
-    // TCP
-    case 0x06:
-        tcp_header = tcp_hdr(skb);
-        kw->src_port = ntohs(tcp_header->source);
-        kw->dst_port = ntohs(tcp_header->dest);
-        break;
-    // UDP
-    case 0x11:
-        udp_header = udp_hdr(skb);
-        kw->src_port = ntohs(udp_header->source);
-        kw->dst_port = ntohs(udp_header->dest);
-        break;
-    default:
-        return 0;
-    }
-    //char output[200];
-    //keyword_to_string(output, 200, kw);
-    // printk("[extract_keyword:%s]",output);
-    return 1;
-}
-
-uint hash_function(const struct keyword *kw)
-{
-    uint seed = 4; // 31 131 1313 13131 131313 etc..
-    uint hash = 0;
-    hash = kw->src_ip + kw->dst_ip;
-    hash = (hash << seed) + kw->protocol;
-    hash = hash + kw->src_port + kw->dst_port;
-    return hash;
-}
-
-int keyword_compare(const struct keyword *k1, const struct keyword *k2)
-{
-
-    return (k1->src_ip == k2->src_ip) &&
-           (k1->src_port == k2->src_port) &&
-           (k1->dst_ip == k2->dst_ip) &&
-           (k1->dst_port == k2->src_port) &&
-           (k1->protocol == k2->protocol);
-}
-
-int rule_compare(const struct rule *r, const struct keyword *kw)
-{
-
-    return ((r->src_ip & r->src_maskoff) == (kw->src_ip & r->src_maskoff)) &&
-           (r->src_port == kw->src_port) &&
-           ((r->dst_ip & r->dst_maskoff) == (kw->dst_ip & r->dst_maskoff)) &&
-           (r->dst_port == kw->dst_port) &&
-           (r->protocol == kw->protocol);
 }
 
 struct option *check_state_table(struct keyword *kw)
@@ -367,38 +223,14 @@ struct option *check_state_table(struct keyword *kw)
     return NULL; //not find in state table
 }
 
-struct option *check_rule_table(const struct keyword *kw)
+int keyword_compare(const struct keyword *k1, const struct keyword *k2)
 {
-    struct rule_node *p;
-    list_for_each_entry(p, &rule_table, list)
-    {
-        if (rule_compare(&p->rule, kw))
-        {
-            return &((p->rule).op);
-        }
-    }
-    return NULL; // not find in rule table
-}
 
-uint convert_ip(char *ip)
-{
-    char *token = NULL;
-    int num = 0;
-    uint total = 0;
-    int index = 3;
-
-    while ((token = strsep(&ip, ".")))
-    {
-        int i;
-        num = simple_strtoul(token, NULL, 10);
-        for (i = 0; i < index; i++)
-        {
-            num *= 256;
-        }
-        total += num;
-        index--;
-    }
-    return total;
+    return (k1->src_ip == k2->src_ip) &&
+           (k1->src_port == k2->src_port) &&
+           (k1->dst_ip == k2->dst_ip) &&
+           (k1->dst_port == k2->src_port) &&
+           (k1->protocol == k2->protocol);
 }
 
 char *keyword_to_string(char *output, int length, const struct keyword *kw)
@@ -460,6 +292,112 @@ char *keyword_to_string(char *output, int length, const struct keyword *kw)
              protocol);
     return output;
 }
+
+int extract_keyword(struct keyword *kw, const struct sk_buff *skb)
+{
+    /**
+     * 0 extract error
+     * 1 ok 
+     */
+    struct iphdr *ip_header;
+    struct udphdr *udp_header;
+    struct tcphdr *tcp_header;
+    if (!skb)
+        return 0;
+
+    // ip
+    ip_header = (struct iphdr *)skb_network_header(skb);
+    if (!ip_header)
+        return 0;
+
+    kw->src_ip = (uint)(ntohl(ip_header->saddr));
+    kw->dst_ip = (uint)(ntohl(ip_header->daddr));
+    kw->protocol = ip_header->protocol;
+
+    switch (ip_header->protocol)
+    {
+    // ICMP
+    case 0x01:
+        kw->src_port = (uint)0;
+        kw->dst_port = (uint)0;
+        break;
+    // TCP
+    case 0x06:
+        tcp_header = tcp_hdr(skb);
+        kw->src_port = ntohs(tcp_header->source);
+        kw->dst_port = ntohs(tcp_header->dest);
+        break;
+    // UDP
+    case 0x11:
+        udp_header = udp_hdr(skb);
+        kw->src_port = ntohs(udp_header->source);
+        kw->dst_port = ntohs(udp_header->dest);
+        break;
+    default:
+        return 0;
+    }
+    //char output[200];
+    //keyword_to_string(output, 200, kw);
+    // printk("[extract_keyword:%s]",output);
+    return 1;
+}
+
+uint hash_function(const struct keyword *kw)
+{
+    uint seed = 4; // 31 131 1313 13131 131313 etc..
+    uint hash = 0;
+    hash = kw->src_ip + kw->dst_ip;
+    hash = (hash << seed) + kw->protocol;
+    hash = hash + kw->src_port + kw->dst_port;
+    return hash;
+}
+
+int add_state_node(const struct keyword *kw, const struct option *op)
+{
+    char output[200];
+    struct state_node *state = (struct state_node *)kmalloc(sizeof(struct state_node), GFP_KERNEL);
+
+    keyword_to_string(output, 200, kw);
+
+    state->kw = *kw;
+    state->hash = hash_function(kw);
+    state->op = *op;
+    hash_add(state_table, &state->list, state->hash);
+    printk("[add_state_node]:add %s", output);
+    return 1;
+}
+
+
+
+
+
+
+
+
+
+struct option *check_rule_table(const struct keyword *kw)
+{
+    struct rule_node *p;
+    list_for_each_entry(p, &rule_table, list)
+    {
+        if (rule_compare(&p->rule, kw))
+        {
+            return &((p->rule).op);
+        }
+    }
+    return NULL; // not find in rule table
+}
+
+int rule_compare(const struct rule *r, const struct keyword *kw)
+{
+
+    return ((r->src_ip & r->src_maskoff) == (kw->src_ip & r->src_maskoff)) &&
+           (r->src_port == kw->src_port) &&
+           ((r->dst_ip & r->dst_maskoff) == (kw->dst_ip & r->dst_maskoff)) &&
+           (r->dst_port == kw->dst_port) &&
+           (r->protocol == kw->protocol);
+}
+
 
 char *rule_to_string(char *output, int length, const struct rule *r)
 {
@@ -579,11 +517,52 @@ char *rule_to_string(char *output, int length, const struct rule *r)
     return output;
 }
 
-int add_rule_node(char *input)
+uint convert_ip(char *ip)
+{
+    char *token = NULL;
+    int num = 0;
+    uint total = 0;
+    int index = 3;
+
+    while ((token = strsep(&ip, ".")))
+    {
+        int i;
+        num = simple_strtoul(token, NULL, 10);
+        for (i = 0; i < index; i++)
+        {
+            num *= 256;
+        }
+        total += num;
+        index--;
+    }
+    return total;
+}
+
+int handle_rules_config(char *input)
+{
+    //int size = strlen(input);
+    int num = 1;
+    char *pch;
+    printk("[handle_rules_config]:%s", input);
+    while ((pch = strsep(&input, "#")))
+    {
+        if (strcmp(pch, "") == 0)
+            continue;
+        // printk("[handle_rules_config no.%d]:%s", num, pch);
+        add_rule_node(pch, -1);
+        num++;
+    }
+
+    // debug_send_to_user("Get it");
+    send_to_user("Get it.", TAG_MSG);
+    return 0;
+}
+
+int add_rule_node(char *input, int position)
 {
     // example: 192.168.57.0/24:20 192.168.52.0/26:40 tcp deny
     int index = 0; // index: 0~3
-    int num = 1;
+    //int num = 1;
     char *pch;
     char *piece;
 
@@ -690,12 +669,16 @@ int add_rule_node(char *input)
                 tmp.op.log = NO;
             }
         }
-        num++;
+        //num++;
         index++;
     }
     // add rule into rule_table
     node->rule = tmp;
-    list_add_tail(&node->list, &rule_table);
+    if(position == -1){
+        list_add_tail(&node->list, &rule_table);
+    }else{
+
+    }
 
     char output[200];
     rule_to_string(output, 200, &tmp);
@@ -704,32 +687,88 @@ int add_rule_node(char *input)
     return 1;
 }
 
-int handle_rule_config(char *input)
-{
-    //int size = strlen(input);
-    int num = 1;
+int insert_one_rule(char *input){
     char *pch;
-    printk("[handle_rule_config]:%s", input);
-    while ((pch = strsep(&input, "#")))
-    {
-        if (strcmp(pch, "") == 0)
-            continue;
-        // printk("[handle_rule_config no.%d]:%s", num, pch);
-        add_rule_node(pch);
-        num++;
+    int position = -1;
+    // position
+    if((pch = strsep(&input, " "))){
+        position = (int)simple_strtol(pch, NULL, 10);
     }
-    // debug: print rule table
-    struct rule_node *p;
-    char output[200];
-    // list_for_each_entry(p, &rule_table, list){
-    //     rule_to_string(output, 200, &p->rule);
-    //     printk("[rule table foreach]:%s", output);
-    // }
-    // debug_send_to_user("Get it");
-    send_to_user("Get it.", TAG_MSG);
-    return 0;
+
+    // rule
+    if((pch = strsep(&input, " "))){
+        add_rule_node(pch, position);
+    }else{
+        return -1;
+    }
+    return 1;
 }
 
+int delete_one_rule(char *input){
+    // TOD: delete
+    char *pch;
+    int position = -1;
+    if((pch = strsep(&input, " "))){
+        position = (int)simple_strtol(pch, NULL, 10);
+    }
+
+    struct rule_node *p;
+    int index = 1;
+    list_for_each_entry(p, &rule_table, list){
+        if(position == index){
+            list_del(&p->list);
+            kfree(p);
+        }
+        index++;
+    }
+    if(position >= index++){
+        list_del(&p->list);
+        kfree(p);
+    }
+
+}
+
+int print_rule_table(){
+    // debug: print rule table
+    struct rule_node *p;
+    char output[200] = {0};
+    int index = 1;
+    list_for_each_entry(p, &rule_table, list){
+        str[0] = index + '0';
+        str[1] = '.';
+        rule_to_string(str + 2, 200, &p->rule);
+        send_to_user(output, TAG_MSG);
+        index++;
+    }
+    return 1;
+}
+
+int send_log_to_user(const struct keyword *kw, const struct option *op)
+{
+    int length = 200;
+    char output[400];
+   char kw_str[200];
+
+    memset(output, '\0', 400 * sizeof(char));
+    memset(kw_str, '\0', 200 * sizeof(char));
+
+    keyword_to_string(kw_str, length, kw);
+    if (op->action == ALLOW)
+    {
+        strcpy(output, "[log]:allow ");
+        strcpy(output + 12, kw_str);
+        output[strlen(kw_str) + 12] = '\0';
+    }
+    else
+    {
+        strcpy(output, "[log]:deny ");
+        strcpy(output + 11, kw_str);
+        output[strlen(kw_str) + 11] = '\0';
+    }
+    printk("%s", output);
+    send_to_user(output, TAG_MSG);
+    return 1;
+}
 int send_to_user(char *data, int tag)
 {
     //1)declare a struct sk_buff*
@@ -783,17 +822,43 @@ void rcv_from_user(struct sk_buff *__skb)
 {
     struct sk_buff *skb;
     struct nlmsghdr *nlh = NULL;
-
+    struct message msg;
     skb = skb_get(__skb);
 
     if (skb->len >= NLMSG_SPACE(0))
     {
         nlh = nlmsg_hdr(skb);
         user_pid = nlh->nlmsg_pid;
-        handle_rule_config((char *)NLMSG_DATA(nlh));
+        msg = * (struct message *)NLMSG_DATA(nlh);
+        switch (msg.tag)
+        {
+        case TAG_DEFAULT:
+            if(msg.length > 0 && msg.data[0] =='a'){
+                default_action = NF_ACCEPT;
+            }else{
+                default_action = NF_DROP;
+            }
+            break;
+        case TAG_CONFIG:
+            handle_rules_config(msg.data);
+            break;
+        case TAG_INSERT:
+            insert_one_rule(msg.data);
+            break;
+        case TAG_DELETE:
+            delete_one_rule(msg.data);
+            break;
+        case TAG_PRINT:
+            print_rule_table();
+            break;
+        default:
+            break;
+        }
+        handle_rules_config((char *)NLMSG_DATA(nlh));
     }
     kfree_skb(skb);
 }
+
 
 int init_mod(void)
 {

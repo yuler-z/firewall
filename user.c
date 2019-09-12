@@ -11,9 +11,16 @@
 #define TAG_END 0
 #define TAG_MSG 1
 #define TAG_LOG 2
+// command
+#define TAG_INSERT 3
+#define TAG_DELETE 4 
+#define TAG_PRINT 5
+// default action and configuration
+#define TAG_CONFIG 6
+#define TAG_DEFAULT 7
 
 struct message{
-    int tag; // 0 = end, 1 = msg, 
+    int tag; // 0 = end, 1 = msg, 2 = log
     int length;
     char data[DATA_LEN];
 };
@@ -82,27 +89,37 @@ int rcv_from_kernel(){
 
 }
 
-int send_to_kernel(char *input){
+int send_to_kernel(char *data, int tag){
     struct nlmsghdr *nlh;
-    char data[200];
+    char input[200];
     int ret;
+    struct message msg;
 
-    nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(strlen(data)));
+    memset(msg.data, '\0', DATA_LEN);
+    memset(input, 0, 200 * sizeof(char));
+    memcpy(input, data, strlen(data));
+
+    nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(sizeof(msg)));
     memset(nlh, 0, sizeof(struct nlmsghdr));
-    nlh->nlmsg_len = NLMSG_SPACE(strlen(data)); //length of msg
+    nlh->nlmsg_len = NLMSG_SPACE(sizeof(msg); //length of msg
     nlh->nlmsg_flags = 0; 
     nlh->nlmsg_type = 0;
     nlh->nlmsg_seq = 0; // sequence number
     nlh->nlmsg_pid = saddr.nl_pid; // sending process PID
 
-    memcpy(NLMSG_DATA(nlh), data, strlen(data));
+    msg.tag = tag;
+    msg.length = strlen(input);
+    memcpy(msg.data, input, strlen(input));
+
+    memcpy(NLMSG_DATA(nlh), &msg, strlen(data));
     
-    printf("[%s]:[%d]\n", (char *)NLMSG_DATA(nlh), nlh->nlmsg_len);
+//    printf("[%s]:[%d]\n", (char *)NLMSG_DATA(nlh), nlh->nlmsg_len);
     ret = sendto(skfd, nlh, nlh->nlmsg_len, 0,(struct sockaddr *)&daddr, sizeof(daddr));
     if(!ret){
         perror("send pid:");
         exit(-1);
     }
+    return 1;
 }
 
 int main(int argc, char* argv[])
@@ -117,7 +134,25 @@ int main(int argc, char* argv[])
                 //   "222.10.23.0/24 48 222.10.52.0/24 58 tcp deny#"
                     "202.114.0.245 0 192.168.57.0/24 0 icmp deny yes"; // ping www.hust.edu.cn
                 //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny yes#"; //ping www.baidu.com
+    char input[200];
+    send_to_kernel("allow", TAG_DEFAULT);
+    send_to_kernel(data, TAG_CONFIG)
 
+    while(1){
+        get(input);
+        if(strcmp(input, "quit") == 0 || input[0] == 'q'){ // quit, exit 
+            break;
+        }else if(strcmp(input, "insert") == 0 || input[0] == 'i'){ // insert
+            get(input);
+            send_to_kernel(input, TAG_INSERT);
+        }else if(strcmp(input, "delete") == 0 || input[0] == 'd'){ // delete one rule
+            get(input);
+            send_to_kernel(input, TAG_DELETE);
+        }else if(strcmp(input, "check") || input[0] == 'c'){ // print rule table
+            get(input);
+            send_to_kernel(input, TAG_PRINT);
+        }
+    }
 
     
     return 0;
