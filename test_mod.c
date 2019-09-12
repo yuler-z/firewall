@@ -173,11 +173,13 @@ int send_log_to_user(const struct keyword *kw, const struct option *op)
     {
         strcpy(output, "[log]:allow ");
         strcpy(output + 12, kw_str);
+        output[strlen(kw_str) + 12] = '\0';
     }
     else
     {
         strcpy(output, "[log]:deny ");
         strcpy(output + 11, kw_str);
+        output[strlen(kw_str) + 11] = '\0';
     }
     send_to_user(output, TAG_MSG);
     return 1;
