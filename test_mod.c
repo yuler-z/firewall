@@ -167,8 +167,11 @@ int send_log_to_user(const struct keyword *kw, const struct option *op)
     int length = 200;
     char output[400];
     char kw_str[200];
-    keyword_to_string(kw_str, length, kw);
 
+    memeset(output, '\0', 400 * sizeof(char));
+    memeset(kw_str, '\0', 200 * sizeof(char));
+
+    keyword_to_string(kw_str, length, kw);
     if (op->action == ALLOW)
     {
         strcpy(output, "[log]:allow ");
@@ -181,6 +184,7 @@ int send_log_to_user(const struct keyword *kw, const struct option *op)
         strcpy(output + 11, kw_str);
         output[strlen(kw_str) + 11] = '\0';
     }
+    printk("%s", output);
     send_to_user(output, TAG_MSG);
     return 1;
 }
@@ -221,14 +225,14 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
         }
         if (state_option->action == ALLOW)
         {
-            keyword_to_string(output, 200, &kw);
-            printk("[Hash Accept packet:%s]", output);
+            //keyword_to_string(output, 200, &kw);
+            //printk("[Hash Accept packet:%s]", output);
             return NF_ACCEPT;
         }
         else if (state_option->action == DENY)
         {
-            keyword_to_string(output, 200, &kw);
-            printk("[Hash Drop packet:%s]", output);
+            //keyword_to_string(output, 200, &kw);
+            //printk("[Hash Drop packet:%s]", output);
             return NF_DROP;
         }
     }
@@ -451,7 +455,7 @@ char *keyword_to_string(char *output, int length, const struct keyword *kw)
         break;
     }
 
-    snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s ", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
+    snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s\0", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
              dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_port,
              protocol);
     return output;
@@ -550,25 +554,25 @@ char *rule_to_string(char *output, int length, const struct rule *r)
     }
     if (src_maskoff_num == 32 && dst_maskoff_num == 32)
     {
-        snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s %s %s", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
+        snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d %u %s %s %s\0", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
                  dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_port,
                  protocol, action, log);
     }
     else if (src_maskoff_num == 32)
     {
-        snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d/%d %u %s %s %s", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
+        snprintf(output, length, "%d.%d.%d.%d %u %d.%d.%d.%d/%d %u %s %s %s\0", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_port,
                  dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_maskoff_num, dst_port,
                  protocol, action, log);
     }
     else if (dst_maskoff_num == 32)
     {
-        snprintf(output, length, "%d.%d.%d.%d/%d %u %d.%d.%d.%d %u %s %s %s", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,
+        snprintf(output, length, "%d.%d.%d.%d/%d %u %d.%d.%d.%d %u %s %s %s\0", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,
                  dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_port,
                  protocol, action, log);
     }
     else
     {
-        snprintf(output, length, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s %s", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,
+        snprintf(output, length, "%d.%d.%d.%d/%d %u %d.%d.%d.%d/%d %u %s %s %s\0", src_ip_arr[0], src_ip_arr[1], src_ip_arr[2], src_ip_arr[3], src_maskoff_num, src_port,
                  dst_ip_arr[0], dst_ip_arr[1], dst_ip_arr[2], dst_ip_arr[3], dst_maskoff_num, dst_port,
                  protocol, action, log);
     }
