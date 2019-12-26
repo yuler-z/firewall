@@ -669,7 +669,7 @@ int add_rule_node(char *input, int position)
                 tmp.op.action = DENY;
             }
             // debug
-            printk("[action]:%u\n", tmp.op.action);
+            printk("[action]:%d\n", tmp.op.action);
             break;
         // log
         case 6:
@@ -682,7 +682,7 @@ int add_rule_node(char *input, int position)
                 tmp.op.log = NO;
             }
             // debug
-            printk("[log]:%u\n", tmp.op.log);
+            printk("[log]:%d\n", tmp.op.log);
             break;
         default:
             break;
@@ -691,13 +691,14 @@ int add_rule_node(char *input, int position)
         index++;
     }
     printk("[convert ok]\n");
+
     // add rule into rule_table
     // node->rule = tmp;
     // if(position == -1){
     //     list_add_tail(&node->list, &rule_table);
     //     // debug
-    //     rule_to_string(output, 200, &tmp);
-    //     printk("[rule added]:%s", output);
+        rule_to_string(output, 200, &tmp);
+        printk("[rule added]:%s", output);
     // }else{
 
     // }
