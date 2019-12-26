@@ -751,7 +751,7 @@ int delete_one_rule(char *input){
     }
     
     if(position > i){
-        send_to_user("insert error", TAG_MSG);
+        send_to_user("insert error\n", TAG_MSG);
         return 0;
     }
 
@@ -890,7 +890,7 @@ void rcv_from_user(struct sk_buff *__skb)
             print_rule_table();
             break;
         case TAG_END:
-            send_to_user("socket will be closed!", TAG_MSG);
+            send_to_user("socket will be closed!\n", TAG_MSG);
             send_to_user("quit", TAG_END);
             break;
         default:
