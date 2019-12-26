@@ -566,7 +566,7 @@ int add_rule_node(char *input, int position)
     struct rule tmp;
     while ((pch = strsep(&input, " ")))
     {
-        // printk("[add_rule_node no.%d]:%s", num, pch);
+        printk("[add_rule_node no.%d]:%s", num, pch);
         switch (index)
         {
         // source ip/maskoff
@@ -587,14 +587,16 @@ int add_rule_node(char *input, int position)
             }
             if (in == 0)
                 tmp.src_maskoff = 0xffffffff;
-            // printk("[src_ip:%02X", tmp.src_ip);
-            // printk("[src_maskoff:%02X",tmp.src_maskoff);
+            // debug
+            printk("[src_ip:%02X", tmp.src_ip);
+            printk("[src_maskoff:%02X",tmp.src_maskoff);
             break;
         }
         // source port
         case 1:
             tmp.src_port = (uint)simple_strtol(pch, NULL, 10);
-            // printk("[src_port:%u]", tmp.src_port);
+            //debug 
+            printk("[src_port:%u]", tmp.src_port);
             break;
 
         // destination ip/maskoff
@@ -615,13 +617,15 @@ int add_rule_node(char *input, int position)
             }
             if (in == 0)
                 tmp.dst_maskoff = 0xffffffff;
-            // printk("[dst_ip:%02X", tmp.dst_ip);
-            // printk("[dst_maskoff:%02X",tmp.dst_maskoff);
+            // debug
+            printk("[dst_ip:%02X", tmp.dst_ip);
+            printk("[dst_maskoff:%02X",tmp.dst_maskoff);
             break;
         }
         case 3:
             tmp.dst_port = (uint)simple_strtol(pch, NULL, 10);
-            // printk("[dst_port:%u]", tmp.dst_port);
+            // debug
+            printk("[dst_port:%u]", tmp.dst_port);
             break;
 
         // protocol
@@ -640,7 +644,8 @@ int add_rule_node(char *input, int position)
             }
             else
                 return -1;
-            // printk("[protocol:%02X]:",tmp.protocol);
+            // debug
+            printk("[protocol:%02X]:",tmp.protocol);
             break;
 
         // action
@@ -653,7 +658,8 @@ int add_rule_node(char *input, int position)
             {
                 tmp.op.action = DENY;
             }
-            // printk("[action:%d]", tmp.action);
+            // debug
+            printk("[action:%d]", tmp.action);
         // log
         case 6:
             if (pch[0] == 'y' || pch[0] == 'Y')
