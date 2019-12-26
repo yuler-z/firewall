@@ -729,7 +729,7 @@ int insert_one_rule(char *input){
 
     // rule
     add_rule_node(input, position);
-    
+
     return 1;
 }
 
@@ -737,23 +737,20 @@ int delete_one_rule(char *input){
     // TODO: delete
     char *pch;
     int position = -1;
-    struct rule_node *p;
-    if((pch = strsep(&input, " "))){
-        position = (int)simple_strtol(pch, NULL, 10);
-    }
+    struct rule_node *p, *next;
+    position = (int)simple_strtol(input, NULL, 10);
+ 
 
-    int index = 1;
-    list_for_each_entry(p, &rule_table, list){
+    int i = 1;
+    list_for_each_entry_safe(p, &rule_table, list){
         if(position == index){
             list_del(&p->list);
             kfree(p);
+            break;
         }
-        index++;
+        i++;
     }
-    if(position >= index++){
-        list_del(&p->list);
-        kfree(p);
-    }
+
 
     return 0;
 }
