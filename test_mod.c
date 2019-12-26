@@ -677,12 +677,12 @@ int add_rule_node(char *input, int position)
     node->rule = tmp;
     if(position == -1){
         list_add_tail(&node->list, &rule_table);
+        // debug
+        rule_to_string(output, 200, &tmp);
+        printk("[rule added]:%s", output);
     }else{
 
     }
-
-    rule_to_string(output, 200, &tmp);
-    printk("[rule added]:%s", output);
 
     return 1;
 }
@@ -726,6 +726,7 @@ int delete_one_rule(char *input){
         kfree(p);
     }
 
+    return 0;
 }
 
 int print_rule_table(){
