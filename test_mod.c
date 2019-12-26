@@ -590,8 +590,8 @@ int add_rule_node(char *input, int position)
             // debug
             // printk("[src_ip]:%02X", tmp.src_ip);
             // printk("[src_maskoff]:%02X",tmp.src_maskoff);
-            printk("[src_ip]:%x\n", tmp.src_ip);
-            printk("[src_maskoff]:%x\n",tmp.src_maskoff);
+            // printk("[src_ip]:%x\n", tmp.src_ip);
+            // printk("[src_maskoff]:%x\n",tmp.src_maskoff);
             
             break;
         }
@@ -600,7 +600,7 @@ int add_rule_node(char *input, int position)
             tmp.src_port = (uint)simple_strtol(pch, NULL, 10);
             //debug 
             // printk("[src_port]:%u\n", tmp.src_port);
-            printk("[src_port]:%d\n", tmp.src_port);
+            // printk("[src_port]:%d\n", tmp.src_port);
             break;
 
         // destination ip/maskoff
@@ -624,8 +624,8 @@ int add_rule_node(char *input, int position)
             // debug
             // printk("[dst_ip]:%02X", tmp.dst_ip);
             // printk("[dst_maskoff]:%02X",tmp.dst_maskoff);
-            printk("[dst_ip]:%x\n", tmp.dst_ip);
-            printk("[dst_maskoff]:%x\n",tmp.dst_maskoff);
+            // printk("[dst_ip]:%x\n", tmp.dst_ip);
+            // printk("[dst_maskoff]:%x\n",tmp.dst_maskoff);
             
 
             break;
@@ -634,7 +634,7 @@ int add_rule_node(char *input, int position)
             tmp.dst_port = (uint)simple_strtol(pch, NULL, 10);
             // debug
             // printk("[dst_port]:%u\n", tmp.dst_port);
-            printk("[dst_port]:%d\n", tmp.dst_port);
+            // printk("[dst_port]:%d\n", tmp.dst_port);
             break;
 
         // protocol
@@ -655,7 +655,7 @@ int add_rule_node(char *input, int position)
                 return -1;
             // debug
             // printk("[protocol]:%02X\n",tmp.protocol);
-            printk("[protocol]:%x\n",tmp.protocol);
+            // printk("[protocol]:%x\n",tmp.protocol);
             break;
 
         // action
@@ -669,7 +669,7 @@ int add_rule_node(char *input, int position)
                 tmp.op.action = DENY;
             }
             // debug
-            printk("[action]:%d\n", tmp.op.action);
+            // printk("[action]:%d\n", tmp.op.action);
             break;
         // log
         case 6:
@@ -682,7 +682,7 @@ int add_rule_node(char *input, int position)
                 tmp.op.log = NO;
             }
             // debug
-            printk("[log]:%d\n", tmp.op.log);
+            // printk("[log]:%d\n", tmp.op.log);
             break;
         default:
             break;
@@ -690,7 +690,7 @@ int add_rule_node(char *input, int position)
         // num++;
         index++;
     }
-    printk("[convert ok]\n");
+    // printk("[convert ok]\n");
 
     // add rule into rule_table
     node->rule = tmp;
@@ -738,21 +738,25 @@ int delete_one_rule(char *input){
     char *pch;
     int position = -1;
     struct rule_node *p, *next;
-    int i = 1;
+    int i = 0;
     position = (int)simple_strtol(input, NULL, 10);
  
 
     list_for_each_entry_safe(p, next, &rule_table, list){
+        i++;
         if(position == i){
             list_del(&p->list);
             kfree(p);
             break;
         }
-        i++;
+    }
+    
+    if(pos > i){
+        send_to_user("insert error", TAG_MSG);
+        return 0;
     }
 
-
-    return 0;
+    return 1;
 }
 
 int print_rule_table(){
