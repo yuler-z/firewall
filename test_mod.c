@@ -761,7 +761,7 @@ int print_rule_table(){
         rule_to_string(output, 150, &p->rule);
         send_to_user(index, TAG_MSG);
         send_to_user(output, TAG_MSG);
-        send_to_user("\n", TAG_MSG)
+        send_to_user("\n", TAG_MSG);
         i++;
     }
     return 1;
