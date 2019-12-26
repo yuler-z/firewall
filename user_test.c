@@ -167,7 +167,8 @@ int main(int argc, char* argv[])
     send_to_kernel("allow", TAG_DEFAULT);
     send_to_kernel(data, TAG_CONFIG);
     send_to_kernel("print", TAG_PRINT);
-    send_to_kernel("1 123.123.123.123 0 1.2.3.4 24 0 icmp deny no", TAG_INSERT);
+    send_to_kernel("2 123.123.123.123/8 0 1.2.3.4/8 24 icmp deny no", TAG_INSERT);
+    send_to_kernel("print", TAG_PRINT);
     send_to_kernel("quit", TAG_END);
 
     if(pthread_join(thread, NULL)){
