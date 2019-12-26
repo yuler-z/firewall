@@ -64,7 +64,7 @@ int init_socket(){
 int exit_socket(){
     close(skfd);
 }
-/*
+
 int rcv_from_kernel(){
     int ret, daddrlen = sizeof(struct sockaddr_nl);
     struct packet_info info;
@@ -92,8 +92,8 @@ int rcv_from_kernel(){
         }
     }
     return 0;
+
 }
-*/
 
 int send_to_kernel(char *data, int tag){
     struct nlmsghdr *nlh;
@@ -153,19 +153,24 @@ int main(int argc, char* argv[])
                 //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny yes#"; //ping www.baidu.com
     char input[200];
     int flag = 0;
-    int ret, daddrlen = sizeof(struct sockaddr_nl);
+    int ret;
     unsigned int id;
-    struct packet_info info;
     pthread_t thread;
-
     init_socket();
 
-    send_to_kernel(data, TAG_CONFIG);
+    ret = pthread_create(&thread,NULL,(void *)rcv_from_kernel, NULL); 
+    if(ret != 0){ 
+        printf ("Create pthread error!\n"); 
+        exit (1);
+    } 
 
-    ret = recvfrom(skfd, &info, sizeof(struct packet_info),0, (struct sockaddr*)&daddr, &daddrlen);
-    if(!ret){
-        perror("recv from kerner:");
-        exit(-1);
+    // send_to_kernel("allow", TAG_DEFAULT);
+    send_to_kernel(data, TAG_CONFIG);
+    send_to_kernel("quit", TAG_END);
+
+    if(pthread_join(thread, NULL)){
+        printf("thread is not exit");
+        return -2;
     }
 
     exit_socket();
