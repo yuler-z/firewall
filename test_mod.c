@@ -738,11 +738,11 @@ int delete_one_rule(char *input){
     char *pch;
     int position = -1;
     struct rule_node *p, *next;
+    int i = 1;
     position = (int)simple_strtol(input, NULL, 10);
  
 
-    int i = 1;
-    list_for_each_entry_safe(p, &rule_table, list){
+    list_for_each_entry_safe(p, next, &rule_table, list){
         if(position == index){
             list_del(&p->list);
             kfree(p);
