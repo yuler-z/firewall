@@ -735,7 +735,6 @@ int insert_one_rule(char *input){
 
 int delete_one_rule(char *input){
     // TODO: delete
-    char *pch;
     int position = -1;
     struct rule_node *p, *next;
     int i = 0;
@@ -760,14 +759,16 @@ int delete_one_rule(char *input){
 }
 
 int print_rule_table(){
-    // debug: print rule table
-    send_to_user("[print_rule_table]\n", TAG_MSG);
     
     // TODO: BUG
     struct rule_node *p;
     char index[10] = {0};
     char output[200] = {0};
     int i = 1;
+
+    // debug: print rule table
+    send_to_user("[print_rule_table]\n", TAG_MSG);
+    
     list_for_each_entry(p, &rule_table, list){
         snprintf(index, 10, "%4d.", i);
         rule_to_string(output, 150, &p->rule);
@@ -941,6 +942,9 @@ int init_mod(void)
 void exit_mod(void)
 {
     struct rule_node *r, *tmp;
+    struct state_node *s;
+    struct hlist_node *t;
+    int bkt;
 
     printk("firewall module exit ...\n");
     nf_unregister_net_hook(&init_net, &input_hook);  //取消钩子注册
@@ -958,9 +962,6 @@ void exit_mod(void)
     }
 
     // free state_table
-    struct state_node *s;
-    struct hlist_node *t;
-    int bkt;
     hash_for_each_safe(state_table, bkt, t, s, list)
     {
         hash_del(&s->list);
