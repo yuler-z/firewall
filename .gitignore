@@ -6,3 +6,4 @@ user
 *.ko
 *.symvers
 *.order
+user_test
