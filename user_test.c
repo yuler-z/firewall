@@ -69,6 +69,9 @@ int rcv_from_kernel(){
     int ret, daddrlen = sizeof(struct sockaddr_nl);
     struct packet_info info;
     char *retval;
+    int tag = 0;
+    File *fp;
+    fp = fopen("./firewall.log", "a");
 
     // rcv log from kernel space
     while(1){
@@ -80,17 +83,19 @@ int rcv_from_kernel(){
         }else if(ret == 0){
             continue;
         }
-        
-        if((int)info.msg.tag == TAG_END){
+        tag = (int)info.msg.tag;
+
+        if(tag == TAG_END){
             break;
-        }
-        if((int)info.msg.length == 0){
-            continue;
+        }else if(tag == TAG_LOG){
+            fputs(char(*)info.msg.data, fp);   
         }else{
-            //TODO: write to file
             printf("%s",(char*)info.msg.data);
         }
+            
     }
+
+    fclose(fp);
     return 0;
 
 }
