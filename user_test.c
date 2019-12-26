@@ -155,17 +155,17 @@ int main(int argc, char* argv[])
     } 
     while(1){
         memset(input, 0, sizeof(input)/sizeof(char));
-        gets(input);
+        fgets(input, sizeof(input), stdin);
         if(strcmp(input, "quit") == 0 || input[0] == 'q'){ // quit, exit 
             send_to_kernel("quit", TAG_END);
             break;
         }else if(strcmp(input, "insert") == 0 || input[0] == 'i'){ // insert
                 memset(input, 0, sizeof(input)/sizeof(char));
-                gets(input);
+                fgets(input, sizeof(input), stdin);
                 send_to_kernel(input, TAG_INSERT);
         }else if(strcmp(input, "delete") == 0 || input[0] == 'd'){ // delete one rule
                 memset(input, 0, sizeof(input)/sizeof(char));
-                gets(input);
+                fgets(input, sizeof(input), stdin);
                 send_to_kernel(input, TAG_DELETE);
         }else if(strcmp(input, "print") == 0 || input[0] == 'p'){ // print rule table
             send_to_kernel("print", TAG_PRINT);
@@ -173,14 +173,14 @@ int main(int argc, char* argv[])
     }
 
     // send_to_kernel("allow", TAG_DEFAULT);
-    send_to_kernel("allow", TAG_DEFAULT);
-    send_to_kernel(data, TAG_CONFIG);
-    send_to_kernel("print", TAG_PRINT);
-    send_to_kernel("2 123.123.123.123/8 0 1.2.3.4/8 24 icmp deny no", TAG_INSERT);
-    send_to_kernel("print", TAG_PRINT);
-    send_to_kernel("1", TAG_DELETE);
-    send_to_kernel("print", TAG_PRINT);
-    send_to_kernel("quit", TAG_END);
+    // send_to_kernel("allow", TAG_DEFAULT);
+    // send_to_kernel(data, TAG_CONFIG);
+    // send_to_kernel("print", TAG_PRINT);
+    // send_to_kernel("2 123.123.123.123/8 0 1.2.3.4/8 24 icmp deny no", TAG_INSERT);
+    // send_to_kernel("print", TAG_PRINT);
+    // send_to_kernel("1", TAG_DELETE);
+    // send_to_kernel("print", TAG_PRINT);
+    // send_to_kernel("quit", TAG_END);
 
     if(pthread_join(thread, NULL)){
         printf("thread is not exit");
