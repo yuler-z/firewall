@@ -826,31 +826,31 @@ void rcv_from_user(struct sk_buff *__skb)
 {
     struct sk_buff *skb;
     struct nlmsghdr *nlh = NULL;
-    struct message msg;
+    struct message *msg;
     skb = skb_get(__skb);
 
     if (skb->len >= NLMSG_SPACE(0))
     {
         nlh = nlmsg_hdr(skb);
         user_pid = nlh->nlmsg_pid;
-        msg = * (struct message *)NLMSG_DATA(nlh);
+        msg = (struct message *)NLMSG_DATA(nlh);
         switch (msg.tag)
         {
         case TAG_DEFAULT:
-            if(msg.length > 0 && msg.data[0] =='a'){
+            if(msg->length > 0 && msg->data[0] =='a'){
                 default_action = NF_ACCEPT;
             }else{
                 default_action = NF_DROP;
             }
             break;
         case TAG_CONFIG:
-            handle_rules_config(msg.data);
+            handle_rules_config(msg->data);
             break;
         case TAG_INSERT:
-            insert_one_rule(msg.data);
+            insert_one_rule(msg->data);
             break;
         case TAG_DELETE:
-            delete_one_rule(msg.data);
+            delete_one_rule(msg->data);
             break;
         case TAG_PRINT:
             print_rule_table();
@@ -861,7 +861,7 @@ void rcv_from_user(struct sk_buff *__skb)
         default:
             break;
         }
-        handle_rules_config((char *)NLMSG_DATA(nlh));
+        // handle_rules_config((char *)NLMSG_DATA(nlh));
     }
     kfree_skb(skb);
 }

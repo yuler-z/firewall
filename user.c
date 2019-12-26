@@ -161,12 +161,14 @@ int main(int argc, char* argv[])
     send_to_kernel(data, TAG_CONFIG);
 
     while(1){
+        memset(input, 0, sizeof(input)/sizeof(char));
         get(input);
         if(strcmp(input, "quit") == 0 || input[0] == 'q'){ // quit, exit 
             send_to_kernel(input, TAG_END);
             break;
         }else if(strcmp(input, "insert") == 0 || input[0] == 'i'){ // insert
             if(flag){
+                memset(input, 0, sizeof(input)/sizeof(char));
                 get(input);
                 send_to_kernel(input, TAG_INSERT);
                 flag = 0;
@@ -175,6 +177,7 @@ int main(int argc, char* argv[])
             }
         }else if(strcmp(input, "delete") == 0 || input[0] == 'd'){ // delete one rule
             if(flag){
+                memset(input, 0, sizeof(input)/sizeof(char));
                 get(input);
                 send_to_kernel(input, TAG_DELETE);
                 flag = 0;
@@ -183,7 +186,6 @@ int main(int argc, char* argv[])
             }
         }else if(strcmp(input, "print") == 0 || input[0] == 'p'){ // print rule table
             flag = 1;
-            get(input);
             send_to_kernel(input, TAG_PRINT);
         }
     }
