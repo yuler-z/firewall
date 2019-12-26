@@ -566,7 +566,7 @@ int add_rule_node(char *input, int position)
     struct rule tmp;
     while ((pch = strsep(&input, " ")))
     {
-        printk("[add_rule_node no.%d]:%s", num, pch);
+        // printk("[add_rule_node no.%d]:%s", num, pch);
         switch (index)
         {
         // source ip/maskoff
@@ -659,7 +659,7 @@ int add_rule_node(char *input, int position)
                 tmp.op.action = DENY;
             }
             // debug
-            printk("[action:%d]", tmp.action);
+            printk("[action:%d]", tmp.op.action);
         // log
         case 6:
             if (pch[0] == 'y' || pch[0] == 'Y')
@@ -671,7 +671,7 @@ int add_rule_node(char *input, int position)
                 tmp.op.log = NO;
             }
         }
-        //num++;
+        // num++;
         index++;
     }
     printk('1234');
