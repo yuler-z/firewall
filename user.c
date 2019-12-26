@@ -152,7 +152,6 @@ int main(int argc, char* argv[])
                     "202.114.0.245 0 192.168.57.0/24 0 icmp deny yes"; // ping www.hust.edu.cn
                 //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny yes#"; //ping www.baidu.com
     char input[200];
-    int flag = 0;
     int ret;
     unsigned int id;
     pthread_t thread;
@@ -174,25 +173,14 @@ int main(int argc, char* argv[])
             send_to_kernel("q", TAG_END);
             break;
         }else if(strcmp(input, "insert") == 0 || input[0] == 'i'){ // insert
-            if(flag){
                 memset(input, 0, sizeof(input)/sizeof(char));
                 get(input);
                 send_to_kernel(input, TAG_INSERT);
-                flag = 0;
-            }else{
-                printf("please input \"print\" first to get rule table.\n");
-            }
         }else if(strcmp(input, "delete") == 0 || input[0] == 'd'){ // delete one rule
-            if(flag){
                 memset(input, 0, sizeof(input)/sizeof(char));
                 get(input);
                 send_to_kernel(input, TAG_DELETE);
-                flag = 0;
-            }else{
-                printf("please input \"print\" first to get rule table.\n");
-            }
         }else if(strcmp(input, "print") == 0 || input[0] == 'p'){ // print rule table
-            flag = 1;
             send_to_kernel("p", TAG_PRINT);
         }
     }

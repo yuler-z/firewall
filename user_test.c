@@ -129,15 +129,6 @@ int send_to_kernel(char *data, int tag){
     return 1;
 }
 
-int get(char *input){
-    if(scanf("%s", input) != 0){
-        return 0;
-    }else{
-        return -1;
-    }
-    
-}
-
 int main(int argc, char* argv[])
 {
     // usage:
@@ -162,6 +153,24 @@ int main(int argc, char* argv[])
         printf ("Create pthread error!\n"); 
         exit (1);
     } 
+    while(1){
+        memset(input, 0, sizeof(input)/sizeof(char));
+        gets(input);
+        if(strcmp(input, "quit") == 0 || input[0] == 'q'){ // quit, exit 
+            send_to_kernel("quit", TAG_END);
+            break;
+        }else if(strcmp(input, "insert") == 0 || input[0] == 'i'){ // insert
+                memset(input, 0, sizeof(input)/sizeof(char));
+                gets(input);
+                send_to_kernel(input, TAG_INSERT);
+        }else if(strcmp(input, "delete") == 0 || input[0] == 'd'){ // delete one rule
+                memset(input, 0, sizeof(input)/sizeof(char));
+                gets(input);
+                send_to_kernel(input, TAG_DELETE);
+        }else if(strcmp(input, "print") == 0 || input[0] == 'p'){ // print rule table
+            send_to_kernel("print", TAG_PRINT);
+        }
+    }
 
     // send_to_kernel("allow", TAG_DEFAULT);
     send_to_kernel("allow", TAG_DEFAULT);
