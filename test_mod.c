@@ -590,8 +590,8 @@ int add_rule_node(char *input, int position)
             // debug
             // printk("[src_ip]:%02X", tmp.src_ip);
             // printk("[src_maskoff]:%02X",tmp.src_maskoff);
-            printk("[src_ip]:%d\n", tmp.src_ip);
-            printk("[src_maskoff]:%d\n",tmp.src_maskoff);
+            printk("[src_ip]:%x\n", tmp.src_ip);
+            printk("[src_maskoff]:%x\n",tmp.src_maskoff);
             
             break;
         }
@@ -624,8 +624,8 @@ int add_rule_node(char *input, int position)
             // debug
             // printk("[dst_ip]:%02X", tmp.dst_ip);
             // printk("[dst_maskoff]:%02X",tmp.dst_maskoff);
-            printk("[dst_ip]:%d\n", tmp.dst_ip);
-            printk("[dst_maskoff]:%d\n",tmp.dst_maskoff);
+            printk("[dst_ip]:%x\n", tmp.dst_ip);
+            printk("[dst_maskoff]:%x\n",tmp.dst_maskoff);
             
 
             break;
@@ -655,7 +655,7 @@ int add_rule_node(char *input, int position)
                 return -1;
             // debug
             // printk("[protocol]:%02X\n",tmp.protocol);
-            printk("[protocol]:%d\n",tmp.protocol);
+            printk("[protocol]:%x\n",tmp.protocol);
             break;
 
         // action
@@ -669,7 +669,8 @@ int add_rule_node(char *input, int position)
                 tmp.op.action = DENY;
             }
             // debug
-            printk("[action]:%d\n", tmp.op.action);
+            printk("[action]:%u\n", tmp.op.action);
+            break;
         // log
         case 6:
             if (pch[0] == 'y' || pch[0] == 'Y')
@@ -681,12 +682,15 @@ int add_rule_node(char *input, int position)
                 tmp.op.log = NO;
             }
             // debug
-            printk("[log]:%d\n", tmp.op.log);
+            printk("[log]:%u\n", tmp.op.log);
+            break;
+        default:
+            break;
         }
         // num++;
         index++;
     }
-    printk("convert ok\n");
+    printk("[convert ok]\n");
     // add rule into rule_table
     // node->rule = tmp;
     // if(position == -1){
