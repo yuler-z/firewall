@@ -541,7 +541,7 @@ int handle_rules_config(char *input)
     {
         if (strcmp(pch, "") == 0)
             continue;
-        // printk("[handle_rules_config no.%d]:%s", num, pch);
+        printk("[handle_rules_config no.%d]:%s", num, pch);
         add_rule_node(pch, -1);
         num++;
     }
@@ -668,6 +668,7 @@ int add_rule_node(char *input, int position)
         //num++;
         index++;
     }
+    printk('1234');
     // add rule into rule_table
     node->rule = tmp;
     if(position == -1){

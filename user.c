@@ -168,7 +168,7 @@ int main(int argc, char* argv[])
         memset(input, 0, sizeof(input)/sizeof(char));
         get(input);
         if(strcmp(input, "quit") == 0 || input[0] == 'q'){ // quit, exit 
-            send_to_kernel(NULL, TAG_END);
+            send_to_kernel("q", TAG_END);
             break;
         }else if(strcmp(input, "insert") == 0 || input[0] == 'i'){ // insert
             if(flag){
@@ -190,7 +190,7 @@ int main(int argc, char* argv[])
             }
         }else if(strcmp(input, "print") == 0 || input[0] == 'p'){ // print rule table
             flag = 1;
-            send_to_kernel(NULL, TAG_PRINT);
+            send_to_kernel("p", TAG_PRINT);
         }
     }
 
