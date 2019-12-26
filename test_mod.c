@@ -565,6 +565,7 @@ int add_rule_node(char *input, int position)
     //int num = 1;
     char *pch;
     char *piece;
+    char output[200];
 
     struct rule_node *node = (struct rule_node *)kmalloc(sizeof(struct rule_node *), GFP_KERNEL);
     struct rule tmp;
@@ -680,7 +681,6 @@ int add_rule_node(char *input, int position)
 
     }
 
-    char output[200];
     rule_to_string(output, 200, &tmp);
     printk("[rule added]:%s", output);
 
@@ -708,11 +708,11 @@ int delete_one_rule(char *input){
     // TODO: delete
     char *pch;
     int position = -1;
+    struct rule_node *p;
     if((pch = strsep(&input, " "))){
         position = (int)simple_strtol(pch, NULL, 10);
     }
 
-    struct rule_node *p;
     int index = 1;
     list_for_each_entry(p, &rule_table, list){
         if(position == index){
@@ -734,18 +734,15 @@ int print_rule_table(){
     char output[200] = {0};
     int index = 1;
     list_for_each_entry(p, &rule_table, list){
-        str[0] = index + '0';
-        str[1] = '.';
-        rule_to_string(str + 2, 200, &p->rule);
+        output[0] = index + '0';
+        output[1] = '.';
+        rule_to_string(output + 2, 200, &p->rule);
         send_to_user(output, TAG_MSG);
         index++;
     }
     return 1;
 }
 
-int end_program(){
-    send_to_user(output, TAG_END);
-}
 
 int send_log_to_user(const struct keyword *kw, const struct option *op)
 {
@@ -834,7 +831,7 @@ void rcv_from_user(struct sk_buff *__skb)
         nlh = nlmsg_hdr(skb);
         user_pid = nlh->nlmsg_pid;
         msg = (struct message *)NLMSG_DATA(nlh);
-        switch (msg.tag)
+        switch (msg->tag)
         {
         case TAG_DEFAULT:
             if(msg->length > 0 && msg->data[0] =='a'){
@@ -856,7 +853,7 @@ void rcv_from_user(struct sk_buff *__skb)
             print_rule_table();
             break;
         case TAG_END:
-            exit_program();
+            send_to_user(NULL, TAG_END);
             break;
         default:
             break;
@@ -906,6 +903,8 @@ int init_mod(void)
 
 void exit_mod(void)
 {
+    struct rule_node *r, *tmp;
+
     printk("firewall module exit ...\n");
     nf_unregister_net_hook(&init_net, &input_hook);  //取消钩子注册
     nf_unregister_net_hook(&init_net, &output_hook); //取消钩子注册
@@ -915,7 +914,6 @@ void exit_mod(void)
     sock_release(nlfd->sk_socket);
 
     // free rule_table
-    struct rule_node *r, *tmp;
     list_for_each_entry_safe(r, tmp, &rule_table, list)
     {
         list_del(&r->list);
