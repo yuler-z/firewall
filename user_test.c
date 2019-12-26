@@ -165,6 +165,7 @@ int main(int argc, char* argv[])
 
     // send_to_kernel("allow", TAG_DEFAULT);
     send_to_kernel(data, TAG_CONFIG);
+    send_to_kernel("print", TAG_PRINT);
     send_to_kernel("quit", TAG_END);
 
     if(pthread_join(thread, NULL)){

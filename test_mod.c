@@ -749,6 +749,7 @@ int delete_one_rule(char *input){
 
 int print_rule_table(){
     // debug: print rule table
+    send_to_user("[print_rule_table]", TAG_MSG);
     struct rule_node *p;
     char output[200] = {0};
     int index = 1;
