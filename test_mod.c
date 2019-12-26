@@ -750,16 +750,18 @@ int delete_one_rule(char *input){
 int print_rule_table(){
     // debug: print rule table
     send_to_user("[print_rule_table]", TAG_MSG);
-    // struct rule_node *p;
-    // char output[200] = {0};
-    // int index = 1;
-    // list_for_each_entry(p, &rule_table, list){
-    //     output[0] = index + '0';
-    //     output[1] = '.';
-    //     rule_to_string(output + 2, 200, &p->rule);
-    //     send_to_user(output, TAG_MSG);
-    //     index++;
-    // }
+    
+    // TODO: BUG
+    struct rule_node *p;
+    char output[200] = {0};
+    int index = 1;
+    list_for_each_entry(p, &rule_table, list){
+        // output[0] = index + '0';
+        // output[1] = '.';
+        rule_to_string(output, 200, &p->rule);
+        send_to_user(output, TAG_MSG);
+        index++;
+    }
     return 1;
 }
 
