@@ -368,13 +368,6 @@ int add_state_node(const struct keyword *kw, const struct option *op)
 }
 
 
-
-
-
-
-
-
-
 struct option *check_rule_table(const struct keyword *kw)
 {
     struct rule_node *p;
@@ -556,7 +549,7 @@ int handle_rules_config(char *input)
     // debug_send_to_user("Get it");
 
     // send_to_user(input, TAG_MSG);
-    send_to_user("Get it.", TAG_MSG);
+    // send_to_user("Get it.", TAG_MSG);
     return 0;
 }
 
