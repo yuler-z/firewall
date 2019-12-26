@@ -77,7 +77,10 @@ int rcv_from_kernel(){
         if(!ret){
             perror("recv from kerner:");
             exit(-1);
+        }else if(ret == 0){
+            continue;
         }
+        
         if((int)info.msg.tag == TAG_END){
             break;
         }
