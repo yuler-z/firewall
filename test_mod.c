@@ -693,15 +693,15 @@ int add_rule_node(char *input, int position)
     printk("[convert ok]\n");
 
     // add rule into rule_table
-    // node->rule = tmp;
-    // if(position == -1){
-    //     list_add_tail(&node->list, &rule_table);
-    //     // debug
+    node->rule = tmp;
+    if(position == -1){
+        list_add_tail(&node->list, &rule_table);
+        // debug
         rule_to_string(output, 200, &tmp);
         printk("[rule added]:%s\n", output);
-    // }else{
+    }else{
 
-    // }
+    }
     return 1;
 }
 
@@ -872,6 +872,7 @@ void rcv_from_user(struct sk_buff *__skb)
             print_rule_table();
             break;
         case TAG_END:
+            send_to_user("socket will be closed!", TAG_MSG);
             send_to_user("quit", TAG_END);
             break;
         default:
