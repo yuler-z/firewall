@@ -84,7 +84,7 @@ int rcv_from_kernel(){
         if((int)info.msg.tag == TAG_END){
             break;
         }
-        if(info.msg.length == 0){
+        if((int)info.msg.length == 0){
             continue;
         }else{
             //TODO: write to file
