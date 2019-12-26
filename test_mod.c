@@ -728,11 +728,8 @@ int insert_one_rule(char *input){
     }
 
     // rule
-    if((pch = strsep(&input, " "))){
-        add_rule_node(pch, position);
-    }else{
-        return -1;
-    }
+    add_rule_node(input, position);
+    
     return 1;
 }
 
