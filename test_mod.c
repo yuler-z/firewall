@@ -695,12 +695,26 @@ int add_rule_node(char *input, int position)
     // add rule into rule_table
     node->rule = tmp;
     if(position == -1){
-        list_add_tail(&node->list, &rule_table);
         // debug
         rule_to_string(output, 200, &tmp);
         printk("[rule added]:%s\n", output);
-    }else{
 
+        list_add_tail(&node->list, &rule_table);
+    }else{
+        struct rule_node *p;
+        int i = 1;
+
+        // debug
+        rule_to_string(output, 200, &tmp);
+        printk("[rule added]:%s\n", output);
+
+        list_for_each_entry(p, &rule_table, list){
+            if(i == position){
+                list_add_tail(&node->list, &p->list);
+                break;
+            }
+            i++;
+        }
     }
     return 1;
 }
@@ -709,12 +723,12 @@ int insert_one_rule(char *input){
     char *pch;
     int position = -1;
     // position
-    if((pch = strsep(&input, "."))){
+    if((pch = strsep(&input, " "))){
         position = (int)simple_strtol(pch, NULL, 10);
     }
 
     // rule
-    if((pch = strsep(&input, "."))){
+    if((pch = strsep(&input, " "))){
         add_rule_node(pch, position);
     }else{
         return -1;
