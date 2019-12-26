@@ -755,13 +755,14 @@ int print_rule_table(){
     struct rule_node *p;
     char index[10] = {0};
     char output[200] = {0};
-    int index = 1;
+    int i = 1;
     list_for_each_entry(p, &rule_table, list){
-        snprintf(index, 10, "%d", index);
+        snprintf(index, 10, "%4d.", i);
         rule_to_string(output, 150, &p->rule);
         send_to_user(index, TAG_MSG);
         send_to_user(output, TAG_MSG);
-        index++;
+        send_to_user("\n", TAG_MSG)
+        i++;
     }
     return 1;
 }
