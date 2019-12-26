@@ -698,7 +698,7 @@ int add_rule_node(char *input, int position)
     //     list_add_tail(&node->list, &rule_table);
     //     // debug
         rule_to_string(output, 200, &tmp);
-        printk("[rule added]:%s", output);
+        printk("[rule added]:%s\n", output);
     // }else{
 
     // }
