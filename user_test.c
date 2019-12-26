@@ -126,7 +126,6 @@ int send_to_kernel(char *data, int tag){
         exit(-1);
     }
 
-    free(nlh);
     return 1;
 }
 

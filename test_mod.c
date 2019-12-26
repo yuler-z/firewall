@@ -103,7 +103,7 @@ static struct nf_hook_ops output_hook; // output hook
 static struct sock *nlfd = NULL;       //netlink file description
 DEFINE_HASHTABLE(state_table, 10);     //init keyword hashtable
 LIST_HEAD(rule_table);                 // init rule linkedlist
-uint default_action = NF_DROP;
+uint default_action = NF_ACCEPT;
 
 /*----declaration of function----*/
 // hook function
@@ -141,7 +141,7 @@ void rcv_from_user(struct sk_buff *_skb);
 /*-----function------*/
 uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
-
+/*
     // 先提取keywords
     struct keyword kw;
     struct option *state_option, *rule_option;
@@ -193,7 +193,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
         printk("[List Drop packet:%s]", output);
         return NF_DROP;
     }
-
+*/
     return default_action;
 }
 
@@ -872,7 +872,7 @@ void rcv_from_user(struct sk_buff *__skb)
             print_rule_table();
             break;
         case TAG_END:
-            send_to_user(NULL, TAG_END);
+            send_to_user("quit", TAG_END);
             break;
         default:
             break;
