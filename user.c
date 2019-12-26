@@ -112,7 +112,7 @@ int send_to_kernel(char *data, int tag){
     msg.length = strlen(input);
     memcpy(msg.data, input, strlen(input));
 
-    memcpy(NLMSG_DATA(nlh), &msg, strlen(data));
+    memcpy(NLMSG_DATA(nlh), &msg, sizeof(msg));
     
 //    printf("[%s]:[%d]\n", (char *)NLMSG_DATA(nlh), nlh->nlmsg_len);
     ret = sendto(skfd, nlh, nlh->nlmsg_len, 0,(struct sockaddr *)&daddr, sizeof(daddr));
