@@ -751,7 +751,7 @@ int delete_one_rule(char *input){
         }
     }
     
-    if(pos > i){
+    if(position > i){
         send_to_user("insert error", TAG_MSG);
         return 0;
     }
