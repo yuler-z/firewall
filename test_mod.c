@@ -560,7 +560,7 @@ int handle_rules_config(char *input)
 
 int add_rule_node(char *input, int position)
 {
-    // example: 192.168.57.0/24:20 192.168.52.0/26:40 tcp deny
+    // example: 192.168.57.0/24 20 192.168.52.0/26 40 tcp deny log
     int index = 0; // index: 0~3
     //int num = 1;
     char *pch;
@@ -705,7 +705,7 @@ int insert_one_rule(char *input){
 }
 
 int delete_one_rule(char *input){
-    // TOD: delete
+    // TODO: delete
     char *pch;
     int position = -1;
     if((pch = strsep(&input, " "))){

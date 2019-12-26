@@ -21,7 +21,7 @@
 #define TAG_DEFAULT 7
 
 struct message{
-    int tag; // 0 = end, 1 = msg, 2 = log
+    int tag; // 0 = end, 1 = ms rcv_fg, 2 = log
     int length;
     char data[DATA_LEN];
 };
@@ -159,7 +159,7 @@ int main(int argc, char* argv[])
                 send_to_kernel(input, TAG_INSERT);
                 flag = 0;
             }else{
-                printf("please input \"first\" to get rule table.\n");
+                printf("please input \"print\" first to get rule table.\n");
             }
         }else if(strcmp(input, "delete") == 0 || input[0] == 'd'){ // delete one rule
             if(flag){
@@ -167,13 +167,20 @@ int main(int argc, char* argv[])
                 send_to_kernel(input, TAG_DELETE);
                 flag = 0;
             }else{
-                printf("please input \"first\" to get rule table.\n");
+                printf("please input \"print\" first to get rule table.\n");
             }
-        }else if(strcmp(input, "print") || input[0] == 'p'){ // print rule table
+        }else if(strcmp(input, "print") == 0 || input[0] == 'p'){ // print rule table
             flag = 1;
             get(input);
             send_to_kernel(input, TAG_PRINT);
         }
+    }
+
+    sleep(1);
+    
+    if(pthread_join(id, NULL)){
+        printf("thread is not exit");
+        return -2;
     }
 
     exit_socket();
