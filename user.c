@@ -102,7 +102,7 @@ int send_to_kernel(char *data, int tag){
 
     nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(sizeof(msg)));
     memset(nlh, 0, sizeof(struct nlmsghdr));
-    nlh->nlmsg_len = NLMSG_SPACE(sizeof(msg); //length of msg
+    nlh->nlmsg_len = NLMSG_SPACE(sizeof(msg)); //length of msg
     nlh->nlmsg_flags = 0; 
     nlh->nlmsg_type = 0;
     nlh->nlmsg_seq = 0; // sequence number
@@ -123,6 +123,15 @@ int send_to_kernel(char *data, int tag){
     return 1;
 }
 
+int get(char *input){
+    if(scanf("%s", input) != 0){
+        return 0;
+    }else{
+        return -1;
+    }
+    
+}
+
 int main(int argc, char* argv[])
 {
     // usage:
@@ -137,21 +146,24 @@ int main(int argc, char* argv[])
                 //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny yes#"; //ping www.baidu.com
     char input[200];
     int flag = 0;
-    int id, ret;
+    int ret;
+    unsigned int id;
+    pthread_t thread;
     init_socket();
 
-    ret=pthread_create(&id,NULL,(void *)rcv_from_kernel, NULL); 
-　　if(ret != 0){ 
-　　　　printf ("Create pthread error!\n"); 
-　　　　exit (1); 
-　　} 
+    ret=pthread_create(&thread,NULL,(void *)rcv_from_kernel, NULL); 
+    if(ret != 0){ 
+        printf ("Create pthread error!\n"); 
+        exit (1);
+    } 
 
     send_to_kernel("allow", TAG_DEFAULT);
-    send_to_kernel(data, TAG_CONFIG)
+    send_to_kernel(data, TAG_CONFIG);
 
     while(1){
         get(input);
         if(strcmp(input, "quit") == 0 || input[0] == 'q'){ // quit, exit 
+            send_to_kernel(input, TAG_END);
             break;
         }else if(strcmp(input, "insert") == 0 || input[0] == 'i'){ // insert
             if(flag){
@@ -177,8 +189,8 @@ int main(int argc, char* argv[])
     }
 
     sleep(1);
-    
-    if(pthread_join(id, NULL)){
+
+    if(pthread_join(thread, NULL)){
         printf("thread is not exit");
         return -2;
     }

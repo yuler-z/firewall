@@ -743,6 +743,10 @@ int print_rule_table(){
     return 1;
 }
 
+int end_program(){
+    send_to_user(output, TAG_END);
+}
+
 int send_log_to_user(const struct keyword *kw, const struct option *op)
 {
     int length = 200;
@@ -850,6 +854,9 @@ void rcv_from_user(struct sk_buff *__skb)
             break;
         case TAG_PRINT:
             print_rule_table();
+            break;
+        case TAG_END:
+            exit_program();
             break;
         default:
             break;
