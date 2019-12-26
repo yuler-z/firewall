@@ -72,6 +72,7 @@ int rcv_from_kernel(){
 
     // rcv log from kernel space
     while(1){
+        memset(&info, 0, sizeof(struct packet_info));
         ret = recvfrom(skfd, &info, sizeof(struct packet_info),0, (struct sockaddr*)&daddr, &daddrlen);
         if(!ret){
             perror("recv from kerner:");
@@ -152,7 +153,7 @@ int main(int argc, char* argv[])
     pthread_t thread;
     init_socket();
 
-    ret=pthread_create(&thread,NULL,(void *)rcv_from_kernel, NULL); 
+    ret = pthread_create(&thread,NULL,(void *)rcv_from_kernel, NULL); 
     if(ret != 0){ 
         printf ("Create pthread error!\n"); 
         exit (1);

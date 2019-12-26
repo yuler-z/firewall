@@ -554,8 +554,8 @@ int handle_rules_config(char *input)
     }
 
     // debug_send_to_user("Get it");
-    
-    send_to_user(input, TAG_MSG);
+
+    // send_to_user(input, TAG_MSG);
     send_to_user("Get it.", TAG_MSG);
     return 0;
 }
