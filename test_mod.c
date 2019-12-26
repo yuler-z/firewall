@@ -549,7 +549,7 @@ int handle_rules_config(char *input)
     // debug_send_to_user("Get it");
 
     // send_to_user(input, TAG_MSG);
-    send_to_user("Get it.", TAG_MSG);
+    // send_to_user("Get it.", TAG_MSG);
     return 0;
 }
 
@@ -588,15 +588,19 @@ int add_rule_node(char *input, int position)
             if (in == 0)
                 tmp.src_maskoff = 0xffffffff;
             // debug
-            printk("[src_ip:%02X", tmp.src_ip);
-            printk("[src_maskoff:%02X",tmp.src_maskoff);
+            // printk("[src_ip]:%02X", tmp.src_ip);
+            // printk("[src_maskoff]:%02X",tmp.src_maskoff);
+            printk("[src_ip]:%d\n", tmp.src_ip);
+            printk("[src_maskoff]:%d\n",tmp.src_maskoff);
+            
             break;
         }
         // source port
         case 1:
             tmp.src_port = (uint)simple_strtol(pch, NULL, 10);
             //debug 
-            printk("[src_port:%u]", tmp.src_port);
+            // printk("[src_port]:%u\n", tmp.src_port);
+            printk("[src_port]:%d\n", tmp.src_port);
             break;
 
         // destination ip/maskoff
@@ -618,14 +622,19 @@ int add_rule_node(char *input, int position)
             if (in == 0)
                 tmp.dst_maskoff = 0xffffffff;
             // debug
-            printk("[dst_ip:%02X", tmp.dst_ip);
-            printk("[dst_maskoff:%02X",tmp.dst_maskoff);
+            // printk("[dst_ip]:%02X", tmp.dst_ip);
+            // printk("[dst_maskoff]:%02X",tmp.dst_maskoff);
+            printk("[dst_ip]:%d\n", tmp.dst_ip);
+            printk("[dst_maskoff]:%d\n",tmp.dst_maskoff);
+            
+
             break;
         }
         case 3:
             tmp.dst_port = (uint)simple_strtol(pch, NULL, 10);
             // debug
-            printk("[dst_port:%u]", tmp.dst_port);
+            // printk("[dst_port]:%u\n", tmp.dst_port);
+            printk("[dst_port]:%d\n", tmp.dst_port);
             break;
 
         // protocol
@@ -645,7 +654,8 @@ int add_rule_node(char *input, int position)
             else
                 return -1;
             // debug
-            printk("[protocol:%02X]:",tmp.protocol);
+            // printk("[protocol]:%02X\n",tmp.protocol);
+            printk("[protocol]:%d\n",tmp.protocol);
             break;
 
         // action
@@ -659,7 +669,7 @@ int add_rule_node(char *input, int position)
                 tmp.op.action = DENY;
             }
             // debug
-            printk("[action:%d]", tmp.op.action);
+            printk("[action]:%d\n", tmp.op.action);
         // log
         case 6:
             if (pch[0] == 'y' || pch[0] == 'Y')
@@ -670,22 +680,23 @@ int add_rule_node(char *input, int position)
             {
                 tmp.op.log = NO;
             }
+            // debug
+            printk("[log]:%d\n", tmp.op.log);
         }
         // num++;
         index++;
     }
-    printk('1234');
+    printk("convert ok\n");
     // add rule into rule_table
-    node->rule = tmp;
-    if(position == -1){
-        list_add_tail(&node->list, &rule_table);
-        // debug
-        rule_to_string(output, 200, &tmp);
-        printk("[rule added]:%s", output);
-    }else{
+    // node->rule = tmp;
+    // if(position == -1){
+    //     list_add_tail(&node->list, &rule_table);
+    //     // debug
+    //     rule_to_string(output, 200, &tmp);
+    //     printk("[rule added]:%s", output);
+    // }else{
 
-    }
-
+    // }
     return 1;
 }
 
