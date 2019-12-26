@@ -536,12 +536,12 @@ int handle_rules_config(char *input)
     //int size = strlen(input);
     int num = 1;
     char *pch;
-    printk("[handle_rules_config]:%s", input);
+    printk("[handle_rules_config]:%s\n", input);
     while ((pch = strsep(&input, "#")))
     {
         if (strcmp(pch, "") == 0)
             continue;
-        printk("[handle_rules_config no.%d]:%s", num, pch);
+        printk("[handle_rules_config no.%d]:%s\n", num, pch);
         add_rule_node(pch, -1);
         num++;
     }
