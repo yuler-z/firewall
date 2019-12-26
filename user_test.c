@@ -153,6 +153,10 @@ int main(int argc, char* argv[])
         printf ("Create pthread error!\n"); 
         exit (1);
     } 
+
+    send_to_kernel("allow", TAG_DEFAULT);
+    send_to_kernel(data, TAG_CONFIG);
+
     while(1){
         memset(input, 0, sizeof(input)/sizeof(char));
         fgets(input, sizeof(input), stdin);
