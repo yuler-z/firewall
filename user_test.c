@@ -88,7 +88,7 @@ int rcv_from_kernel(){
             continue;
         }else{
             //TODO: write to file
-            printf("%s\n",(char*)info.msg.data);
+            printf("%s",(char*)info.msg.data);
         }
     }
     return 0;
