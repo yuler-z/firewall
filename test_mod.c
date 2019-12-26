@@ -743,7 +743,7 @@ int delete_one_rule(char *input){
  
 
     list_for_each_entry_safe(p, next, &rule_table, list){
-        if(position == index){
+        if(position == i){
             list_del(&p->list);
             kfree(p);
             break;
