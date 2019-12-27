@@ -158,7 +158,7 @@ int main(int argc, char* argv[])
                     "192.168.57.0/24 0 154.8.131.0/24 0 tcp drop yes#" // wget www.douban.com
                     "192.168.57.0/24 0 181.61.200.7/24 0 icmp drop yes#" // ping www.baidu.com
                     "192.168.57.9/24 0 220.181.38.148/24 0 tcp drop yes#"; //wget www.baidu.com
-    char *default_action = "accept";  // "drop" or "accept"
+    char default_action[10] = "accept";  // "drop" or "accept"
     /**********************************Config************************************/
 
     char input[200];
