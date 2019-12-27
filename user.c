@@ -69,6 +69,9 @@ int rcv_from_kernel(){
     int ret, daddrlen = sizeof(struct sockaddr_nl);
     struct packet_info info;
     char *retval;
+    int tag = 0;
+    // FILE *fp;
+    // fp = fopen("./firewall.log", "a");
 
     // rcv log from kernel space
     while(1){
@@ -80,17 +83,18 @@ int rcv_from_kernel(){
         }else if(ret == 0){
             continue;
         }
-        
-        if((int)info.msg.tag == TAG_END){
+        tag = (int)info.msg.tag;
+
+        if(tag == TAG_END){
             break;
-        }
-        if(info.msg.length == 0){
-            continue;
+        // }else if(tag == TAG_LOG){
+            // fputs((const char*)info.msg.data, fp);   
         }else{
-            //TODO: write to file
-            printf("%s\n",(char*)info.msg.data);
-        }
+            printf("%s",(char*)info.msg.data);
+        }     
     }
+
+    // fclose(fp);
     return 0;
 
 }
@@ -126,66 +130,68 @@ int send_to_kernel(char *data, int tag){
         exit(-1);
     }
 
-    free(nlh);
     return 1;
-}
-
-int get(char *input){
-    if(scanf("%s", input) != 0){
-        return 0;
-    }else{
-        return -1;
-    }
-    
 }
 
 int main(int argc, char* argv[])
 {
     // usage:
     //      "sip/smaskoff sport dip/dmaskoff dport protocol action log#"
-    //      "A.B.C.D/x [0->65535] A.B.C.D/x [0->65535] [tcp/udp/icmp] [allow/deny] [yes/no]#"
+    //      "A.B.C.D/x [0->65535] A.B.C.D/x [0->65535] [tcp/udp/icmp] [accept/drop] [yes/no]#"
     // example:
-    //      "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow yes#"
+    //      "192.168.57.0/24 0 192.168.57.0/24 0 icmp accept yes#"
     char data[] = 
-                //    "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow#" // test in internal network 
-                //   "222.10.23.0/24 48 222.10.52.0/24 58 tcp deny#"
-                    "202.114.0.245 0 192.168.57.0/24 0 icmp deny yes"; // ping www.hust.edu.cn
-                //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny yes#"; //ping www.baidu.com
+                   "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow yes#" // test in internal network 
+                    "192.168.57.0/24 0 182.61.200.7/24 80 tcp allow yes";
+                //   "222.10.23.0/24 48 222.10.52.0/24 58 tcp drop yes#"
+                    // "202.114.0.245 0 192.168.57.0/24 0 icmp drop yes#" // ping www.hust.edu.cn
+                //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp drop yes#"; //ping www.baidu.com
     char input[200];
+    int flag = 0;
     int ret;
     unsigned int id;
     pthread_t thread;
     init_socket();
 
-    ret = pthread_create(&thread,NULL,(void *)rcv_from_kernel, NULL); 
+    ret = pthread_create(&thread, NULL,(void *)rcv_from_kernel, NULL); 
     if(ret != 0){ 
         printf ("Create pthread error!\n"); 
         exit (1);
     } 
 
-    send_to_kernel("allow", TAG_DEFAULT);
+    
+
+    send_to_kernel("drop", TAG_DEFAULT);
     send_to_kernel(data, TAG_CONFIG);
 
     while(1){
         memset(input, 0, sizeof(input)/sizeof(char));
-        get(input);
+        fgets(input, sizeof(input), stdin);
         if(strcmp(input, "quit") == 0 || input[0] == 'q'){ // quit, exit 
-            send_to_kernel("q", TAG_END);
+            send_to_kernel("quit", TAG_END);
             break;
         }else if(strcmp(input, "insert") == 0 || input[0] == 'i'){ // insert
                 memset(input, 0, sizeof(input)/sizeof(char));
-                get(input);
+                fgets(input, sizeof(input), stdin);
                 send_to_kernel(input, TAG_INSERT);
         }else if(strcmp(input, "delete") == 0 || input[0] == 'd'){ // delete one rule
                 memset(input, 0, sizeof(input)/sizeof(char));
-                get(input);
+                fgets(input, sizeof(input), stdin);
                 send_to_kernel(input, TAG_DELETE);
         }else if(strcmp(input, "print") == 0 || input[0] == 'p'){ // print rule table
-            send_to_kernel("p", TAG_PRINT);
+            send_to_kernel("print", TAG_PRINT);
         }
     }
 
-    sleep(1);
+    // send_to_kernel("allow", TAG_DEFAULT);
+    // send_to_kernel("allow", TAG_DEFAULT);
+    // send_to_kernel(data, TAG_CONFIG);
+    // send_to_kernel("print", TAG_PRINT);
+    // send_to_kernel("2 123.123.123.123/8 0 1.2.3.4/8 24 icmp deny no", TAG_INSERT);
+    // send_to_kernel("print", TAG_PRINT);
+    // send_to_kernel("1", TAG_DELETE);
+    // send_to_kernel("print", TAG_PRINT);
+    // send_to_kernel("quit", TAG_END);
 
     if(pthread_join(thread, NULL)){
         printf("thread is not exit");
