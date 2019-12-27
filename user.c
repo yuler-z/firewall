@@ -152,7 +152,7 @@ int main(int argc, char* argv[])
     * example:
     *      "192.168.57.0/24 0 192.168.57.0/24 0 icmp accept yes#"
     ***/
-    char data[] = 
+    char default_rules[1024] = 
                     "192.168.57.0/24 0 192.168.57.0/24 0 icmp drpp yes#" // test in internal network 
                     "192.168.57.0/24 0 182.254.53.0/12 0 tcp drop yes#" // wget www.zhihu.com
                     "192.168.57.0/24 0 154.8.131.0/24 0 tcp drop yes#" // wget www.douban.com
@@ -161,7 +161,7 @@ int main(int argc, char* argv[])
     char default_action[10] = "accept";  // "drop" or "accept"
     /**********************************Config************************************/
 
-    char input[200];
+    char input[512];
     int flag = 0;
     int ret;
     unsigned int id;
@@ -177,7 +177,7 @@ int main(int argc, char* argv[])
     signal(SIGINT, handler);
 
     send_to_kernel(default_action, TAG_DEFAULT);
-    send_to_kernel(data, TAG_CONFIG);
+    send_to_kernel(default_rules, TAG_CONFIG);
 
     while(1){
         memset(input, 0, sizeof(input)/sizeof(char));
