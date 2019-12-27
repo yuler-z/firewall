@@ -20,6 +20,7 @@
         "udp.h": "c",
         "icmp.h": "c",
         "list.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "types.h": "c"
     }
 }

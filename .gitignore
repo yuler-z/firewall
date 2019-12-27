@@ -8,3 +8,4 @@ user
 *.order
 user_test
 .cache.mk
+firewall.log
