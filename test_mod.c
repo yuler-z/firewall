@@ -141,14 +141,14 @@ void rcv_from_user(struct sk_buff *_skb);
 /*-----function------*/
 uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
 {
-/*
+    
     // 先提取keywords
     struct keyword kw;
     struct option *state_option, *rule_option;
     char output[200];
 
     extract_keyword(&kw, skb);
-
+/*
     // 1. check state table
     state_option = check_state_table(&kw);
     if (state_option != NULL)
@@ -171,7 +171,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
             return NF_DROP;
         }
     }
-
+    */
     // 2. cheack rule table
     rule_option = check_rule_table(&kw);
     if (rule_option == NULL)
@@ -184,16 +184,27 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     if (rule_option->action == ALLOW)
     {
         keyword_to_string(output, 200, &kw);
-        printk("[List Accept packet:%s]", output);
+        if(rule_option->log == YES){
+            log("[Rule]: allow")
+            log(output);
+            log("\n");
+        }
+
+        // printk("[List Accept packet:%s]", output);
         return NF_ACCEPT;
     }
     else if (rule_option->action == DENY)
     {
         keyword_to_string(output, 200, &kw);
-        printk("[List Drop packet:%s]", output);
+        if(rule_option->log == YEW){
+            log("[Rule]: deny ");
+            log(output);
+            log("\n");
+        }
+        // printk("[List Drop packet:%s]", output);
         return NF_DROP;
     }
-*/
+
     return default_action;
 }
 
@@ -781,7 +792,7 @@ int print_rule_table(){
 }
 
 
-int send_log_to_user(const struct keyword *kw, const struct option *op)
+int log_kw(const struct keyword *kw, const struct option *op)
 {
     int length = 200;
     char output[400];
@@ -807,6 +818,12 @@ int send_log_to_user(const struct keyword *kw, const struct option *op)
     send_to_user(output, TAG_MSG);
     return 1;
 }
+
+int log(char *input){
+    send_to_user(data, TAG_LOG);
+    return 0;
+}
+
 int send_to_user(char *data, int tag)
 {
     //1)declare a struct sk_buff*
