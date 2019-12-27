@@ -34,7 +34,7 @@ MODULE_AUTHOR("U201614817");
 #define NO -1
 
 // msg
-#define DATA_LEN 1024
+#define DATA_LEN 512 
 
 #define TAG_END 0
 #define TAG_MSG 1
