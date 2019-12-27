@@ -178,12 +178,13 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     */
     // 2. cheack rule table
     rule_option = check_rule_table(&kw);
+    
     if (rule_option == NULL)
     {
         return default_action;
     }
 
-    add_state_node(&kw, rule_option);
+//    add_state_node(&kw, rule_option);
 
     if (rule_option->action == ACCEPT)
     {
