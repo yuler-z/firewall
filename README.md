@@ -55,7 +55,7 @@ print
 # unistall module (MUST stop the user-space program first)
 sudo rmmod firewall
 
-# view log file(save log to file that named firewall.log)
+# view log file(save log to file named firewall.log)
 cat firewall.log
 ```
 
