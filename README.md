@@ -37,13 +37,13 @@ sudo insmod firewall.ko
 # run user-space program
 ./user  
 
-# insert a rule
+# insert a rule 
 insert
-1 192.168.57.9/24 0 220.181.38.148/24 0 tcp drop yes
+1 192.168.57.9/24 0 220.181.38.148/24 0 tcp drop yes # index + rule
 
 # delete a rule
 delete
-1
+1 # index
 
 # print rules table
 print
