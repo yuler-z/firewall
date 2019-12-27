@@ -38,19 +38,21 @@ sudo insmod firewall.ko
 ./user  
 
 # insert a rule 
+# insert a new rule into rules table at index 1.
 insert
-1 192.168.57.9/24 0 220.181.38.148/24 0 tcp drop yes # index + rule
+1 192.168.57.9/24 0 220.181.38.148/24 0 tcp drop yes 
 
 # delete a rule
+# delete rule at index 1
 delete
-1 # index
+1
 
 # print rules table
 print
 
 # stop user-space program  
 1. quit
-2. *Crtl+c*
+2. Crtl+c
 
 # unistall module (MUST stop the user-space program first)
 sudo rmmod firewall
