@@ -5,6 +5,7 @@
 #include <string.h>
 #include <linux/netlink.h>
 #include <pthread.h>
+#include <signal.h>
 
 #define NETLINK_TEST 25 // value > 16 
 #define DATA_LEN 500
@@ -70,8 +71,9 @@ int rcv_from_kernel(){
     struct packet_info info;
     char *retval;
     int tag = 0;
-    // FILE *fp;
-    // fp = fopen("./firewall.log", "a");
+    FILE *fp;
+    fp = fopen("./firewall.log", "a");
+
 
     // rcv log from kernel space
     while(1){
@@ -94,7 +96,7 @@ int rcv_from_kernel(){
         }     
     }
 
-    // fclose(fp);
+    fclose(fp);
     return 0;
 
 }
@@ -132,7 +134,13 @@ int send_to_kernel(char *data, int tag){
 
     return 1;
 }
-
+void handler(int sig){
+    send_to_kernel("quit", TAG_END);
+    if(skfd != NULL){
+        exit_socket();
+    }
+    
+}
 int main(int argc, char* argv[])
 {
     // usage:
@@ -159,7 +167,7 @@ int main(int argc, char* argv[])
         exit (1);
     } 
 
-    
+    signal(SIGINT, handler);
 
     send_to_kernel("drop", TAG_DEFAULT);
     send_to_kernel(data, TAG_CONFIG);
