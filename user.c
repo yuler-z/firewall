@@ -13,10 +13,12 @@
 #define TAG_END 0
 #define TAG_MSG 1
 #define TAG_LOG 2
+
 // command
 #define TAG_INSERT 3
 #define TAG_DELETE 4 
 #define TAG_PRINT 5
+
 // default action and configuration
 #define TAG_CONFIG 6
 #define TAG_DEFAULT 7
@@ -75,7 +77,7 @@ int rcv_from_kernel(){
     fp = fopen("./firewall.log", "a");
 
 
-    // rcv log from kernel space
+    // rcv log or msg from kernel space
     while(1){
         memset(&info, 0, sizeof(struct packet_info));
         ret = recvfrom(skfd, &info, sizeof(struct packet_info),0, (struct sockaddr*)&daddr, &daddrlen);
@@ -125,7 +127,6 @@ int send_to_kernel(char *data, int tag){
 
     memcpy(NLMSG_DATA(nlh), &msg, sizeof(msg));
     
-//    printf("[%s]:[%d]\n", (char *)NLMSG_DATA(nlh), nlh->nlmsg_len);
     ret = sendto(skfd, nlh, nlh->nlmsg_len, 0,(struct sockaddr *)&daddr, sizeof(daddr));
     if(!ret){
         perror("send pid:");
@@ -143,17 +144,23 @@ void handler(int sig){
 }
 int main(int argc, char* argv[])
 {
-    // usage:
-    //      "sip/smaskoff sport dip/dmaskoff dport protocol action log#"
-    //      "A.B.C.D/x [0->65535] A.B.C.D/x [0->65535] [tcp/udp/icmp] [accept/drop] [yes/no]#"
-    // example:
-    //      "192.168.57.0/24 0 192.168.57.0/24 0 icmp accept yes#"
+    /*********************************Config**************************************/
+    /***
+    * format:
+    *      "sip/smaskoff sport dip/dmaskoff dport protocol action log#"
+    *      "A.B.C.D/x [0->65535] A.B.C.D/x [0->65535] [tcp/udp/icmp] [accept/drop] [yes/no]#"
+    * example:
+    *      "192.168.57.0/24 0 192.168.57.0/24 0 icmp accept yes#"
+    ***/
     char data[] = 
-                   "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow yes#" // test in internal network 
+                    "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow yes#" // test in internal network 
                     "192.168.57.0/24 0 182.61.200.7/24 80 tcp allow yes";
-                //   "222.10.23.0/24 48 222.10.52.0/24 58 tcp drop yes#"
-                    // "202.114.0.245 0 192.168.57.0/24 0 icmp drop yes#" // ping www.hust.edu.cn
-                //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp drop yes#"; //ping www.baidu.com
+                    "222.10.23.0/24 48 222.10.52.0/24 58 tcp drop yes#"
+                    "202.114.0.245 0 192.168.57.0/24 0 icmp drop yes#" // ping www.hust.edu.cn
+                    "182.61.200.6/31 0 192.168.57.0/24 0 icmp drop yes#"; //ping www.baidu.com
+    char *default_action = "dorp";  // "drop" or "accept"
+    /**********************************Config************************************/
+
     char input[200];
     int flag = 0;
     int ret;
@@ -169,7 +176,7 @@ int main(int argc, char* argv[])
 
     signal(SIGINT, handler);
 
-    send_to_kernel("drop", TAG_DEFAULT);
+    send_to_kernel(default_action, TAG_DEFAULT);
     send_to_kernel(data, TAG_CONFIG);
 
     while(1){
@@ -190,16 +197,6 @@ int main(int argc, char* argv[])
             send_to_kernel("print", TAG_PRINT);
         }
     }
-
-    // send_to_kernel("allow", TAG_DEFAULT);
-    // send_to_kernel("allow", TAG_DEFAULT);
-    // send_to_kernel(data, TAG_CONFIG);
-    // send_to_kernel("print", TAG_PRINT);
-    // send_to_kernel("2 123.123.123.123/8 0 1.2.3.4/8 24 icmp deny no", TAG_INSERT);
-    // send_to_kernel("print", TAG_PRINT);
-    // send_to_kernel("1", TAG_DELETE);
-    // send_to_kernel("print", TAG_PRINT);
-    // send_to_kernel("quit", TAG_END);
 
     if(pthread_join(thread, NULL)){
         printf("thread is not exit");
