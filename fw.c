@@ -162,7 +162,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     {
         // log option
         keyword_to_string(output, 200, &kw);
-        fw_log("[State]: Hit ");
+        fw_log("[State][in]: Hit ");
         fw_log(output);
         fw_log("\n");
         return NF_ACCEPT;
@@ -182,7 +182,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
         add_state_node(&kw, ttl);
         keyword_to_string(output, 200, &kw);
         if(rule_option->log == YES){
-            fw_log("[Rule]: ACCEPT ");
+            fw_log("[Rule][in]: ACCEPT ");
             fw_log(output);
             fw_log("\n");
         }
@@ -194,7 +194,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     {
         keyword_to_string(output, 200, &kw);
         if(rule_option->log == YES){
-            fw_log("[Rule]: DROP ");
+            fw_log("[Rule][in]: DROP ");
             fw_log(output);
             fw_log("\n");
         }
@@ -210,6 +210,61 @@ uint hook_output_func(void *priv,
                       const struct nf_hook_state *state)
 {
     // 先提取keywords
+
+    struct keyword kw;
+    struct option *rule_option;
+    int hit = 0;
+    char output[200];
+    int ttl = 20;
+
+    extract_keyword(&kw, skb);
+    // 1. check state table
+    hit = check_state_table(&kw);
+    if (hit)
+    {
+        // log option
+        keyword_to_string(output, 200, &kw);
+        fw_log("[State][out]: Hit ");
+        fw_log(output);
+        fw_log("\n");
+        return NF_ACCEPT;
+    }
+
+    // 2. cheack rule table
+    rule_option = check_rule_table(&kw);
+    
+    if (rule_option == NULL)
+    {
+        return default_action;
+    }
+
+
+    if (rule_option->action == ACCEPT)
+    {
+        add_state_node(&kw, ttl);
+        keyword_to_string(output, 200, &kw);
+        if(rule_option->log == YES){
+            fw_log("[Rule][out]: ACCEPT ");
+            fw_log(output);
+            fw_log("\n");
+        }
+
+        // printk("[List Accept packet:%s]", output);
+        return NF_ACCEPT;
+    }
+    else if (rule_option->action == DROP)
+    {
+        keyword_to_string(output, 200, &kw);
+        if(rule_option->log == YES){
+            fw_log("[Rule][out]: DROP ");
+            fw_log(output);
+            fw_log("\n");
+        }
+        // printk("[List Drop packet:%s]", output);
+        return NF_DROP;
+    }
+
+    return default_action;
 
     return NF_ACCEPT;
 }
