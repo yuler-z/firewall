@@ -156,7 +156,7 @@ int main(int argc, char* argv[])
                     "192.168.57.0/24 0 192.168.57.0/24 0 icmp drpp yes#" // test in internal network 
                     "192.168.57.0/24 0 182.254.53.0/12 0 tcp drop yes#" // wget www.zhihu.com
                     "192.168.57.0/24 0 154.8.131.0/24 0 tcp drop yes#" // wget www.douban.com
-                    "192.168.57.0/24 0 181.61.200.7/24 0 icmp drop yes#" // ping www.baidu.com
+                    "192.168.57.0/24 0 182.61.200.7/24 0 icmp drop yes#" // ping www.baidu.com
                     "192.168.57.9/24 0 220.181.38.148/24 0 tcp drop yes#"; //wget www.baidu.com
     char default_action[10] = "accept";  // "drop" or "accept"
     /**********************************Config************************************/
@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
     } 
 
     signal(SIGINT, handler);
-    printf("1\n");
+    
     send_to_kernel(default_action, TAG_DEFAULT);
     send_to_kernel(default_rules, TAG_CONFIG);
 
