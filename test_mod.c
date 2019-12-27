@@ -161,6 +161,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     if (hit)
     {
         // log option
+        keyword_to_string(output, 200, &kw);
         fw_log("[State]: Hit ");
         fw_log(output);
         fw_log("\n");

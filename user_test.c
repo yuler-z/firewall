@@ -159,6 +159,8 @@ int main(int argc, char* argv[])
         exit (1);
     } 
 
+    
+
     send_to_kernel("drop", TAG_DEFAULT);
     send_to_kernel(data, TAG_CONFIG);
 
