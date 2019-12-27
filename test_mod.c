@@ -132,10 +132,12 @@ int delete_one_rule(char *input);
 int print_rule_table(void);
 
 // communication between user space and kernel space
-int send_log_to_user(const struct keyword *kw, const struct option *op);
 int send_to_user(char *data, int tag);
 void rcv_from_user(struct sk_buff *_skb);
 
+// log function
+int fw_log_kw(const struct keyword *kw, const struct option *op);
+int fw_log(char *input);
 //
 
 // --------------------------------------------debug-----------------------------------//
@@ -187,9 +189,9 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     {
         keyword_to_string(output, 200, &kw);
         if(rule_option->log == YES){
-            log("[Rule]: ACCEPT")
-            log(output);
-            log("\n");
+            fw_log("[Rule]: ACCEPT");
+            fw_log(output);
+            fw_log("\n");
         }
 
         // printk("[List Accept packet:%s]", output);
@@ -199,9 +201,9 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     {
         keyword_to_string(output, 200, &kw);
         if(rule_option->log == YES){
-            log("[Rule]: drop ");
-            log(output);
-            log("\n");
+            fw_log("[Rule]: drop ");
+            fw_log(output);
+            fw_log("\n");
         }
         // printk("[List Drop packet:%s]", output);
         return NF_DROP;
@@ -777,21 +779,20 @@ int print_rule_table(){
     struct rule_node *p;
     char index[10] = {0};
     char output[200] = {0};
-    char action[100] = {0};
     int i = 1;
 
     // debug: print rule table
     send_to_user("[print_rule_table]:", TAG_MSG);
 
     if(default_action == ACCEPT){
-        send_to_user(" default: accept\n");
+        send_to_user(" default: accept\n", TAG_MSG);
     }else{
-        send_to_user(" default: drop\n");
+        send_to_user(" default: drop\n", TAG_MSG);
     }
     
     list_for_each_entry(p, &rule_table, list){
-        memeset(output, 0, sizeof(output));
-        memeset(index, 0, sizeof(index));
+        memset(output, 0, sizeof(output));
+        memset(index, 0, sizeof(index));
         snprintf(index, 10, "%4d.", i);
         rule_to_string(output, 150, &p->rule);
         send_to_user(index, TAG_MSG);
@@ -803,7 +804,7 @@ int print_rule_table(){
 }
 
 
-int log_kw(const struct keyword *kw, const struct option *op)
+int fw_log_kw(const struct keyword *kw, const struct option *op)
 {
     int length = 200;
     char output[400];
@@ -830,7 +831,7 @@ int log_kw(const struct keyword *kw, const struct option *op)
     return 1;
 }
 
-int log(char *input){
+int fw_log(char *input){
     send_to_user(input, TAG_LOG);
     return 0;
 }
