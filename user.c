@@ -105,13 +105,13 @@ int rcv_from_kernel(){
 
 int send_to_kernel(char *data, int tag){
     struct nlmsghdr *nlh;
-    char input[200];
+    // char input[DATA_LEN];
     int ret;
     struct message msg;
 
     memset(msg.data, '\0', DATA_LEN);
-    memset(input, 0, 200 * sizeof(char));
-    memcpy(input, data, strlen(data));
+    // memset(input, 0, DATA_LEN * sizeof(char));
+    // memcpy(input, data, strlen(data));
 
     nlh = (struct nlmsghdr *)malloc(NLMSG_SPACE(sizeof(msg)));
     memset(nlh, 0, sizeof(struct nlmsghdr));
@@ -122,8 +122,8 @@ int send_to_kernel(char *data, int tag){
     nlh->nlmsg_pid = saddr.nl_pid; // sending process PID
 
     msg.tag = tag;
-    msg.length = strlen(input);
-    memcpy(msg.data, input, strlen(input));
+    msg.length = strlen(data);
+    memcpy(msg.data, data, strlen(data));
 
     memcpy(NLMSG_DATA(nlh), &msg, sizeof(msg));
     
