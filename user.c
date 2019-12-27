@@ -154,10 +154,10 @@ int main(int argc, char* argv[])
     ***/
     char data[] = 
                     "192.168.57.0/24 0 192.168.57.0/24 0 icmp drpp yes#" // test in internal network 
-                    "192.168.57.0/24 0 182.61.200.7/24 0 tcp drop yes#"
-                    "222.10.23.0/24 48 222.10.52.0/24 58 tcp drop yes#"
-                    "202.114.0.245 0 192.168.57.0/24 0 icmp drop yes#" // ping www.hust.edu.cn
-                    "182.61.200.6/31 0 192.168.57.0/24 0 icmp drop yes#"; //ping www.baidu.com
+                    "192.168.57.0/24 0 182.254.53.0/12 0 tcp drop yes#" // wget www.zhihu.com
+                    "192.168.57.0/24 0 154.8.131.0/24 0 tcp drop yes#" // wget www.douban.com
+                    "192.168.57.0/24 0 181.61.200.7/24 0 icmp drop yes#" // ping www.baidu.com
+                    "192.168.57.9/24 0 220.181.38.148/24 0 tcp drop yes#"; //wget www.baidu.com
     char *default_action = "accept";  // "drop" or "accept"
     /**********************************Config************************************/
 
