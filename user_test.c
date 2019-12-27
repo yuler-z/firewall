@@ -89,7 +89,7 @@ int rcv_from_kernel(){
             break;
         // }else if(tag == TAG_LOG){
             // fputs((const char*)info.msg.data, fp);   
-        }else if(tag == TAG_MSG){
+        }else{
             printf("%s",(char*)info.msg.data);
         }     
     }
