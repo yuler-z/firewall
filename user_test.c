@@ -138,15 +138,15 @@ int main(int argc, char* argv[])
 {
     // usage:
     //      "sip/smaskoff sport dip/dmaskoff dport protocol action log#"
-    //      "A.B.C.D/x [0->65535] A.B.C.D/x [0->65535] [tcp/udp/icmp] [allow/deny] [yes/no]#"
+    //      "A.B.C.D/x [0->65535] A.B.C.D/x [0->65535] [tcp/udp/icmp] [accept/drop] [yes/no]#"
     // example:
-    //      "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow yes#"
+    //      "192.168.57.0/24 0 192.168.57.0/24 0 icmp accept yes#"
     char data[] = 
-                   "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow#" // test in internal network 
-                   "192.168.57.0/24 0 192.168.57.0/24 80 tcp allow";
-                //   "222.10.23.0/24 48 222.10.52.0/24 58 tcp deny#"
-                    // "202.114.0.245 0 192.168.57.0/24 0 icmp deny yes#" // ping www.hust.edu.cn
-                //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp deny yes#"; //ping www.baidu.com
+                   "192.168.57.0/24 0 192.168.57.0/24 0 icmp accept yes#" // test in internal network 
+                   "192.168.57.0/24 0 182.61.200.7/24 80 tcp accept yes";
+                //   "222.10.23.0/24 48 222.10.52.0/24 58 tcp drop yes#"
+                    // "202.114.0.245 0 192.168.57.0/24 0 icmp drop yes#" // ping www.hust.edu.cn
+                //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp drop yes#"; //ping www.baidu.com
     char input[200];
     int flag = 0;
     int ret;
@@ -160,7 +160,7 @@ int main(int argc, char* argv[])
         exit (1);
     } 
 
-    send_to_kernel("deny", TAG_DEFAULT);
+    send_to_kernel("drop", TAG_DEFAULT);
     send_to_kernel(data, TAG_CONFIG);
 
     while(1){

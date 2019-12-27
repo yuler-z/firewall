@@ -26,11 +26,13 @@ MODULE_AUTHOR("U201614817");
 #define NETLINK_TEST 25 // value > 16
 
 // action option
-#define ALLOW 1
-#define DENY -1
+#define ACCEPT 1
+#define DROP -1
+
 // log option
 #define YES 1
 #define NO -1
+
 // msg
 #define DATA_LEN 500
 
@@ -55,7 +57,7 @@ struct message
 
 struct option
 {
-    int action; //            1 = allow, -1 = deny
+    int action; //            1 = accept, -1 = drop
     int log;    //               1 = yes, -1 = no
 };
 
@@ -158,13 +160,13 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
         {
             send_log_to_user(&kw, state_option);
         }
-        if (state_option->action == ALLOW)
+        if (state_option->action == ACCEPT)
         {
             //keyword_to_string(output, 200, &kw);
             //printk("[Hash Accept packet:%s]", output);
             return NF_ACCEPT;
         }
-        else if (state_option->action == DENY)
+        else if (state_option->action == DROP)
         {
             //keyword_to_string(output, 200, &kw);
             //printk("[Hash Drop packet:%s]", output);
@@ -181,11 +183,11 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
 
     add_state_node(&kw, rule_option);
 
-    if (rule_option->action == ALLOW)
+    if (rule_option->action == ACCEPT)
     {
         keyword_to_string(output, 200, &kw);
         if(rule_option->log == YES){
-            log("[Rule]: allow")
+            log("[Rule]: ACCEPT")
             log(output);
             log("\n");
         }
@@ -193,11 +195,11 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
         // printk("[List Accept packet:%s]", output);
         return NF_ACCEPT;
     }
-    else if (rule_option->action == DENY)
+    else if (rule_option->action == DROP)
     {
         keyword_to_string(output, 200, &kw);
-        if(rule_option->log == YEW){
-            log("[Rule]: deny ");
+        if(rule_option->log == YES){
+            log("[Rule]: drop ");
             log(output);
             log("\n");
         }
@@ -476,13 +478,13 @@ char *rule_to_string(char *output, int length, const struct rule *r)
     }
 
     //action
-    if (r->op.action == ALLOW)
+    if (r->op.action == ACCEPT)
     {
-        action = "allow";
+        action = "ACCEPT";
     }
     else
     {
-        action = "deny";
+        action = "DROP";
     }
 
     // log
@@ -566,7 +568,7 @@ int handle_rules_config(char *input)
 
 int add_rule_node(char *input, int position)
 {
-    // example: 192.168.57.0/24 20 192.168.52.0/26 40 tcp deny log
+    // example: 192.168.57.0/24 20 192.168.52.0/26 40 tcp drop log
     int index = 0; // index: 0~3
     //int num = 1;
     char *pch;
@@ -673,11 +675,11 @@ int add_rule_node(char *input, int position)
         case 5:
             if (pch[0] == 'a' || pch[0] == 'A')
             {
-                tmp.op.action = ALLOW;
+                tmp.op.action = ACCEPT;
             }
             else /* if(pch[0] == 'd' || pch[0] == 'D')*/
             {
-                tmp.op.action = DENY;
+                tmp.op.action = DROP;
             }
             // debug
             // printk("[action]:%d\n", tmp.op.action);
@@ -775,12 +777,21 @@ int print_rule_table(){
     struct rule_node *p;
     char index[10] = {0};
     char output[200] = {0};
+    char action[100] = {0};
     int i = 1;
 
     // debug: print rule table
-    send_to_user("[print_rule_table]\n", TAG_MSG);
+    send_to_user("[print_rule_table]:", TAG_MSG);
+
+    if(default_action == ACCEPT){
+        send_to_user(" default: accept\n");
+    }else{
+        send_to_user(" default: drop\n");
+    }
     
     list_for_each_entry(p, &rule_table, list){
+        memeset(output, 0, sizeof(output));
+        memeset(index, 0, sizeof(index));
         snprintf(index, 10, "%4d.", i);
         rule_to_string(output, 150, &p->rule);
         send_to_user(index, TAG_MSG);
@@ -802,15 +813,15 @@ int log_kw(const struct keyword *kw, const struct option *op)
     memset(kw_str, '\0', 200 * sizeof(char));
 
     keyword_to_string(kw_str, length, kw);
-    if (op->action == ALLOW)
+    if (op->action == ACCEPT)
     {
-        strcpy(output, "[log]:allow ");
+        strcpy(output, "[log]:ACCEPT ");
         strcpy(output + 12, kw_str);
         output[strlen(kw_str) + 12] = '\0';
     }
     else
     {
-        strcpy(output, "[log]:deny ");
+        strcpy(output, "[log]:drop ");
         strcpy(output + 11, kw_str);
         output[strlen(kw_str) + 11] = '\0';
     }
@@ -820,7 +831,7 @@ int log_kw(const struct keyword *kw, const struct option *op)
 }
 
 int log(char *input){
-    send_to_user(data, TAG_LOG);
+    send_to_user(input, TAG_LOG);
     return 0;
 }
 

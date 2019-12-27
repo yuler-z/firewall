@@ -7,3 +7,4 @@ user
 *.symvers
 *.order
 user_test
+.cache.mk
