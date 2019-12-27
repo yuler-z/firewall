@@ -75,7 +75,7 @@ struct state_node
 {
     struct keyword kw;
     uint hash;
-    struct option op;
+    int ttl;
     struct hlist_node list;
 };
 
@@ -118,7 +118,7 @@ int keyword_compare(const struct keyword *k1, const struct keyword *k2);
 char *keyword_to_string(char *output, int length, const struct keyword *kw);
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
 uint hash_function(const struct keyword *kw);
-int add_state_node(const struct keyword *kw, const struct option *op);
+int add_state_node(const struct keyword *kw, int ttl);
 
 // rule table
 struct option *check_rule_table(const struct keyword *kw);
@@ -150,32 +150,20 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     struct keyword kw;
     struct option *state_option, *rule_option;
     char output[200];
+    int ttl = 20;
 
     extract_keyword(&kw, skb);
-/*
     // 1. check state table
     state_option = check_state_table(&kw);
     if (state_option != NULL)
     {
         // log option
-        if (state_option->log == YES)
-        {
-            send_log_to_user(&kw, state_option);
-        }
-        if (state_option->action == ACCEPT)
-        {
-            //keyword_to_string(output, 200, &kw);
-            //printk("[Hash Accept packet:%s]", output);
-            return NF_ACCEPT;
-        }
-        else if (state_option->action == DROP)
-        {
-            //keyword_to_string(output, 200, &kw);
-            //printk("[Hash Drop packet:%s]", output);
-            return NF_DROP;
-        }
+        fw_log("[State]: Hit ");
+        fw_log(output);
+        fw_log("\n");
+        return NF_ACCEPT;
     }
-    */
+
     // 2. cheack rule table
     rule_option = check_rule_table(&kw);
     
@@ -184,13 +172,13 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
         return default_action;
     }
 
-//    add_state_node(&kw, rule_option);
 
     if (rule_option->action == ACCEPT)
     {
+        add_state_node(&kw, ttl);
         keyword_to_string(output, 200, &kw);
         if(rule_option->log == YES){
-            fw_log("[Rule]: ACCEPT");
+            fw_log("[Rule]: ACCEPT ");
             fw_log(output);
             fw_log("\n");
         }
@@ -202,7 +190,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     {
         keyword_to_string(output, 200, &kw);
         if(rule_option->log == YES){
-            fw_log("[Rule]: drop ");
+            fw_log("[Rule]: DROP ");
             fw_log(output);
             fw_log("\n");
         }
@@ -243,9 +231,9 @@ int keyword_compare(const struct keyword *k1, const struct keyword *k2)
 {
 
     return (k1->src_ip == k2->src_ip) &&
-           (k1->src_port == k2->src_port) &&
+           (k1->src_port == 0? 1: k2->src_port == k2->src_port) &&
            (k1->dst_ip == k2->dst_ip) &&
-           (k1->dst_port == k2->src_port) &&
+           (k1->dst_port == 0? 1: k1->src_port == k2->src_port) &&
            (k1->protocol == k2->protocol);
 }
 
@@ -368,7 +356,7 @@ uint hash_function(const struct keyword *kw)
     return hash;
 }
 
-int add_state_node(const struct keyword *kw, const struct option *op)
+int add_state_node(const struct keyword *kw, int ttl)
 {
     char output[200];
     struct state_node *state = (struct state_node *)kmalloc(sizeof(struct state_node), GFP_KERNEL);
@@ -377,7 +365,7 @@ int add_state_node(const struct keyword *kw, const struct option *op)
 
     state->kw = *kw;
     state->hash = hash_function(kw);
-    state->op = *op;
+    state->ttl = ttl;
     hash_add(state_table, &state->list, state->hash);
     printk("[add_state_node]:add %s", output);
     return 1;
