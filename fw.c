@@ -591,8 +591,8 @@ int add_rule_node(char *input, int position)
             // debug
             // printk("[src_ip]:%02X", tmp.src_ip);
             // printk("[src_maskoff]:%02X",tmp.src_maskoff);
-            // printk("[src_ip]:%x\n", tmp.src_ip);
-            // printk("[src_maskoff]:%x\n",tmp.src_maskoff);
+             printk("[src_ip]:%x\n", tmp.src_ip);
+             printk("[src_maskoff]:%x\n",tmp.src_maskoff);
             
             break;
         }
@@ -600,8 +600,8 @@ int add_rule_node(char *input, int position)
         case 1:
             tmp.src_port = (uint)simple_strtol(pch, NULL, 10);
             //debug 
-            // printk("[src_port]:%u\n", tmp.src_port);
-            // printk("[src_port]:%d\n", tmp.src_port);
+            //  printk("[src_port]:%u\n", tmp.src_port);
+             printk("[src_port]:%u\n", tmp.src_port);
             break;
 
         // destination ip/maskoff
@@ -625,8 +625,8 @@ int add_rule_node(char *input, int position)
             // debug
             // printk("[dst_ip]:%02X", tmp.dst_ip);
             // printk("[dst_maskoff]:%02X",tmp.dst_maskoff);
-            // printk("[dst_ip]:%x\n", tmp.dst_ip);
-            // printk("[dst_maskoff]:%x\n",tmp.dst_maskoff);
+             printk("[dst_ip]:%x\n", tmp.dst_ip);
+             printk("[dst_maskoff]:%x\n",tmp.dst_maskoff);
             
 
             break;
@@ -635,7 +635,6 @@ int add_rule_node(char *input, int position)
             tmp.dst_port = (uint)simple_strtol(pch, NULL, 10);
             // debug
             // printk("[dst_port]:%u\n", tmp.dst_port);
-            // printk("[dst_port]:%d\n", tmp.dst_port);
             break;
 
         // protocol
@@ -670,7 +669,7 @@ int add_rule_node(char *input, int position)
                 tmp.op.action = DROP;
             }
             // debug
-            // printk("[action]:%d\n", tmp.op.action);
+            printk("[action]:%d\n", tmp.op.action);
             break;
         // log
         case 6:
@@ -683,7 +682,7 @@ int add_rule_node(char *input, int position)
                 tmp.op.log = NO;
             }
             // debug
-            // printk("[log]:%d\n", tmp.op.log);
+            printk("[log]:%d\n", tmp.op.log);
             break;
         default:
             break;

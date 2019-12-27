@@ -73,8 +73,8 @@ int rcv_from_kernel(){
     struct packet_info info;
     char *retval;
     int tag = 0;
-    FILE *fp;
-    fp = fopen("./firewall.log", "a");
+    // FILE *fp;
+    // fp = fopen("./firewall.log", "a");
 
 
     // rcv log or msg from kernel space
@@ -92,13 +92,13 @@ int rcv_from_kernel(){
         if(tag == TAG_END){
             break;
         }else if(tag == TAG_LOG){
-            fputs((const char*)info.msg.data, fp);   
-        }else{
+        //     fputs((const char*)info.msg.data, fp);   
+        // }else{
             printf("%s",(char*)info.msg.data);
         }     
     }
 
-    fclose(fp);
+    // fclose(fp);
     return 0;
 
 }
@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
     } 
 
     signal(SIGINT, handler);
-    
+
     send_to_kernel(default_action, TAG_DEFAULT);
     send_to_kernel(default_rules, TAG_CONFIG);
 
