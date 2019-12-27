@@ -23,23 +23,25 @@ char default_rules[1024] =
                 "192.168.57.0/24 0 182.61.200.7/24 0 icmp drop yes#" // ping www.baidu.com
                 "192.168.57.9/24 0 220.181.38.148/24 0 tcp drop yes#"; //wget www.baidu.com
 char *default_action = "accpet";  // "drop" or "accept"
+```  
+
+Run
+
+```  
+# build
+./build.sh 
+
+# install module  
+sudo insmod firewall.ko
+
+# run user-space program
+./user  
+
+# stop user-space program  
+1. quit
+2. *Crtl+c*
+
+# unistall module (MUST stop the user-space program first)
+sudo rmmod firewall
+
 ```
-### Build  
-
-`./build.sh`  
-
-### Install module  
-
-`sudo insmod firewall.ko`  
-
-### Run user space program  
-
-`./user`  
-
-### Stop user space program  
-
-input `quit` or `Ctrl+c` 
-
-### Unistall module  
-
-`sudo rmmod firewall`
