@@ -76,6 +76,7 @@ struct state_node
     struct keyword kw;
     uint hash;
     int ttl;
+
     struct hlist_node list;
 };
 
@@ -95,6 +96,7 @@ struct rule
 struct rule_node
 {
     struct rule rule;
+
     struct list_head list;
 };
 
@@ -113,7 +115,7 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
 uint hook_output_func(void *priv, struct sk_buff *skb, const struct nf_hook_state *state);
 
 // state_table
-struct option *check_state_table(struct keyword *kw);
+int check_state_table(struct keyword *kw);
 int keyword_compare(const struct keyword *k1, const struct keyword *k2);
 char *keyword_to_string(char *output, int length, const struct keyword *kw);
 int extract_keyword(struct keyword *kw, const struct sk_buff *skb);
@@ -148,14 +150,15 @@ uint hook_input_func(void *priv, struct sk_buff *skb, const struct nf_hook_state
     
     // 先提取keywords
     struct keyword kw;
-    struct option *state_option, *rule_option;
+    struct option *rule_option;
+    int hit = 0;
     char output[200];
     int ttl = 20;
 
     extract_keyword(&kw, skb);
     // 1. check state table
-    state_option = check_state_table(&kw);
-    if (state_option != NULL)
+    hit = check_state_table(&kw);
+    if (hit)
     {
         // log option
         fw_log("[State]: Hit ");
@@ -210,28 +213,25 @@ uint hook_output_func(void *priv,
     return NF_ACCEPT;
 }
 
-struct option *check_state_table(struct keyword *kw)
-{
+int check_state_table(struct keyword *kw){
+
     uint hash = hash_function(kw);
     struct state_node *p;
     hash_for_each_possible(state_table, p, list, hash)
     {
-        if (p->hash == hash)
+        if (keyword_compare(&p->kw, kw))
         {
-            if (keyword_compare(&p->kw, kw))
-            {
-                return &(p->op);
-            }
+            return 1;
         }
     }
-    return NULL; //not find in state table
+    return 0; // not hit
 }
 
 int keyword_compare(const struct keyword *k1, const struct keyword *k2)
 {
 
     return (k1->src_ip == k2->src_ip) &&
-           (k1->src_port == 0? 1: k2->src_port == k2->src_port) &&
+           (k1->src_port == 0? 1: k1->src_port == k2->src_port) &&
            (k1->dst_ip == k2->dst_ip) &&
            (k1->dst_port == 0? 1: k1->src_port == k2->src_port) &&
            (k1->protocol == k2->protocol);
@@ -356,8 +356,7 @@ uint hash_function(const struct keyword *kw)
     return hash;
 }
 
-int add_state_node(const struct keyword *kw, int ttl)
-{
+int add_state_node(const struct keyword *kw, int ttl){
     char output[200];
     struct state_node *state = (struct state_node *)kmalloc(sizeof(struct state_node), GFP_KERNEL);
 
@@ -372,8 +371,7 @@ int add_state_node(const struct keyword *kw, int ttl)
 }
 
 
-struct option *check_rule_table(const struct keyword *kw)
-{
+struct option *check_rule_table(const struct keyword *kw){
     struct rule_node *p;
     list_for_each_entry(p, &rule_table, list)
     {
@@ -385,8 +383,7 @@ struct option *check_rule_table(const struct keyword *kw)
     return NULL; // not find in rule table
 }
 
-int rule_compare(const struct rule *r, const struct keyword *kw)
-{
+int rule_compare(const struct rule *r, const struct keyword *kw){
 
     return ((r->src_ip & r->src_maskoff) == (kw->src_ip & r->src_maskoff)) &&
            (r->src_port == 0? 1: r->src_port == kw->src_port) &&
@@ -396,8 +393,7 @@ int rule_compare(const struct rule *r, const struct keyword *kw)
 }
 
 
-char *rule_to_string(char *output, int length, const struct rule *r)
-{
+char* rule_to_string(char *output, int length, const struct rule *r){
     int src_ip_arr[4];
     uint src_port;
     int src_maskoff_num = 0;
@@ -792,12 +788,12 @@ int print_rule_table(){
     return 1;
 }
 
-
+/*
 int fw_log_kw(const struct keyword *kw, const struct option *op)
 {
     int length = 200;
     char output[400];
-   char kw_str[200];
+    char kw_str[200];
 
     memset(output, '\0', 400 * sizeof(char));
     memset(kw_str, '\0', 200 * sizeof(char));
@@ -819,7 +815,7 @@ int fw_log_kw(const struct keyword *kw, const struct option *op)
     send_to_user(output, TAG_MSG);
     return 1;
 }
-
+*/
 int fw_log(char *input){
     send_to_user(input, TAG_LOG);
     return 0;
