@@ -35,7 +35,7 @@ struct packet_info
 
 struct sockaddr_nl saddr; // source socket addr
 struct sockaddr_nl daddr; // dest socket addr
-int skfd; // the file description of netlink socket>
+int skfd = -1; // the file description of netlink socket>
 
 int init_socket(){
 
@@ -136,10 +136,10 @@ int send_to_kernel(char *data, int tag){
 }
 void handler(int sig){
     send_to_kernel("quit", TAG_END);
-    if(skfd != NULL){
+    if(skfd != -1){
         exit_socket();
     }
-    
+
 }
 int main(int argc, char* argv[])
 {
