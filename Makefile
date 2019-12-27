@@ -2,8 +2,8 @@
 #KERN_DIR = /usr/src/$(shell uname -r)
 CONFIG_MODULE_SIG=n
 KERN_DIR = /lib/modules/$(shell uname -r)/build
-fw-objs := firewall.o #file2.o file3.o
-obj-m += fw.o
+fw-objs := fw.o #file2.o file3.o
+obj-m += firewall.o
 
 all:
 	make -C $(KERN_DIR) M=$(shell pwd) modules   
