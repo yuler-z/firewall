@@ -139,7 +139,7 @@ void handler(int sig){
     if(skfd != -1){
         exit_socket();
     }
-
+    exit(0);
 }
 int main(int argc, char* argv[])
 {
