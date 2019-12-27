@@ -70,8 +70,8 @@ int rcv_from_kernel(){
     struct packet_info info;
     char *retval;
     int tag = 0;
-    FILE *fp;
-    fp = fopen("./firewall.log", "a");
+    // FILE *fp;
+    // fp = fopen("./firewall.log", "a");
 
     // rcv log from kernel space
     while(1){
@@ -87,14 +87,14 @@ int rcv_from_kernel(){
 
         if(tag == TAG_END){
             break;
-        }else if(tag == TAG_LOG){
-            fputs((const char*)info.msg.data, fp);   
+        // }else if(tag == TAG_LOG){
+            // fputs((const char*)info.msg.data, fp);   
         }else if(tag == TAG_MSG){
             printf("%s",(char*)info.msg.data);
         }     
     }
 
-    fclose(fp);
+    // fclose(fp);
     return 0;
 
 }
