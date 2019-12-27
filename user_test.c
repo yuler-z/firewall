@@ -89,10 +89,9 @@ int rcv_from_kernel(){
             break;
         }else if(tag == TAG_LOG){
             fputs((const char*)info.msg.data, fp);   
-        }else{
+        }else if(tag == TAG_MSG){
             printf("%s",(char*)info.msg.data);
-        }
-            
+        }     
     }
 
     fclose(fp);
@@ -142,8 +141,8 @@ int main(int argc, char* argv[])
     // example:
     //      "192.168.57.0/24 0 192.168.57.0/24 0 icmp accept yes#"
     char data[] = 
-                   "192.168.57.0/24 0 192.168.57.0/24 0 icmp accept yes#" // test in internal network 
-                   "192.168.57.0/24 0 182.61.200.7/24 80 tcp accept yes";
+                   "192.168.57.0/24 0 192.168.57.0/24 0 icmp allow yes#" // test in internal network 
+                    "192.168.57.0/24 0 182.61.200.7/24 80 tcp allow yes";
                 //   "222.10.23.0/24 48 222.10.52.0/24 58 tcp drop yes#"
                     // "202.114.0.245 0 192.168.57.0/24 0 icmp drop yes#" // ping www.hust.edu.cn
                 //    "182.61.200.6/31 0 192.168.57.0/24 0 icmp drop yes#"; //ping www.baidu.com
@@ -154,7 +153,7 @@ int main(int argc, char* argv[])
     pthread_t thread;
     init_socket();
 
-    ret = pthread_create(&thread,NULL,(void *)rcv_from_kernel, NULL); 
+    ret = pthread_create(&thread, NULL,(void *)rcv_from_kernel, NULL); 
     if(ret != 0){ 
         printf ("Create pthread error!\n"); 
         exit (1);

@@ -401,9 +401,9 @@ int rule_compare(const struct rule *r, const struct keyword *kw)
 {
 
     return ((r->src_ip & r->src_maskoff) == (kw->src_ip & r->src_maskoff)) &&
-           (r->src_port == kw->src_port) &&
+           (r->src_port == 0? 1: r->src_port == kw->src_port) &&
            ((r->dst_ip & r->dst_maskoff) == (kw->dst_ip & r->dst_maskoff)) &&
-           (r->dst_port == kw->dst_port) &&
+           (r->dst_port == 0? 1: r->dst_port == kw->dst_port) &&
            (r->protocol == kw->protocol);
 }
 
@@ -552,12 +552,12 @@ int handle_rules_config(char *input)
     //int size = strlen(input);
     int num = 1;
     char *pch;
-    printk("[handle_rules_config]:%s\n", input);
+    // printk("[handle_rules_config]:%s\n", input);
     while ((pch = strsep(&input, "#")))
     {
         if (strcmp(pch, "") == 0)
             continue;
-        printk("[handle_rules_config no.%d]:%s\n", num, pch);
+        // printk("[handle_rules_config no.%d]:%s\n", num, pch);
         add_rule_node(pch, -1);
         num++;
     }
