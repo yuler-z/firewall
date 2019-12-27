@@ -175,7 +175,7 @@ int main(int argc, char* argv[])
     } 
 
     signal(SIGINT, handler);
-
+    printf("1\n");
     send_to_kernel(default_action, TAG_DEFAULT);
     send_to_kernel(default_rules, TAG_CONFIG);
 

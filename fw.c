@@ -834,15 +834,11 @@ int send_to_user(char *data, int tag)
     //8)call the netlink_unicast() to transmit the struct skb_buff
     int size;
     int retval;
-    char input[500];
     struct sk_buff *skb;
     struct nlmsghdr *nlh;
     struct message msg;
 
-    memset(input, '\0', 500 * sizeof(char));
     memset(msg.data, '\0', DATA_LEN);
-    memcpy(input, data, strlen(data));
-
 
     //size = NLMSG_SPACE(strlen(input));
     size = NLMSG_SPACE(sizeof(msg));
@@ -856,8 +852,8 @@ int send_to_user(char *data, int tag)
     nlh = nlmsg_put(skb, 0, 0, 0, NLMSG_SPACE(sizeof(msg)) - sizeof(struct nlmsghdr) /*size of payload*/, 0); //init nlmsg header
 
     msg.tag = tag;
-    msg.length = strlen(input);
-    memcpy(msg.data, input, strlen(input));
+    msg.length = strlen(data);
+    memcpy(msg.data, data, strlen(data));
 
     memcpy(NLMSG_DATA(nlh), &msg, sizeof(msg)); //put msg into skb
 
