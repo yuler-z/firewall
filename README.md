@@ -2,7 +2,7 @@
 
 A simple firewall implementation.
 
-## Usage  
+## Getting started  
 
 Set initial rules and default action before building the project in **user.c**.
 
@@ -25,7 +25,7 @@ char default_rules[1024] =
 char *default_action = "accpet";  // "drop" or "accept"
 ```  
 
-Run
+Run  
 
 ```  
 # build
@@ -37,6 +37,17 @@ sudo insmod firewall.ko
 # run user-space program
 ./user  
 
+# insert a rule
+insert
+1 192.168.57.9/24 0 220.181.38.148/24 0 tcp drop yes
+
+# delete a rule
+delete
+1
+
+# print rules table
+print
+
 # stop user-space program  
 1. quit
 2. *Crtl+c*
@@ -44,4 +55,8 @@ sudo insmod firewall.ko
 # unistall module (MUST stop the user-space program first)
 sudo rmmod firewall
 
+# view log file(save log to file that named firewall.log)
+cat firewall.log
 ```
+
+
