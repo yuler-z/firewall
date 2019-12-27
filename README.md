@@ -24,7 +24,22 @@ char default_rules[1024] =
                 "192.168.57.9/24 0 220.181.38.148/24 0 tcp drop yes#"; //wget www.baidu.com
 char *default_action = "accpet";  // "drop" or "accept"
 ```
+### Build  
 
-1. `./build.sh`  
-2. `sudo insmod firewall.ko`  
-3. `./user`  
+`./build.sh`  
+
+### Install module  
+
+`sudo insmod firewall.ko`  
+
+### Run user space program  
+
+`./user`  
+
+### Stop user space program  
+
+input `quit` or `Ctrl+c` 
+
+### Unistall module  
+
+`sudo rmmod firewall`
